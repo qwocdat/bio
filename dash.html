@@ -157,27 +157,36 @@
   const statusEl = document.getElementById('status');
 
   let debounceTimer = null;
-  let isRemoteUpdate = false; // tránh vòng lặp khi tự nhận lại chính mình
+  let isRemoteUpdate = false;
 
   function setStatus(text, cls) {
     statusEl.textContent = text;
     statusEl.className = 'status ' + (cls || '');
   }
 
-  function pushUpdate() {
-    if (isRemoteUpdate) return;
+  // Hàm đẩy code bắt buộc (Bỏ qua cờ check khi bấm nút trực tiếp)
+  function pushUpdate(force = false) {
+    if (isRemoteUpdate && !force) return;
+    setStatus('● đang gửi lên Firebase...');
+    
     set(liveRef, editor.value)
-      .then(() => setStatus('● đã đồng bộ ' + new Date().toLocaleTimeString(), 'live'))
-      .catch((err) => setStatus('● lỗi: ' + err.message, 'error'));
+      .then(() => {
+        setStatus('● đã đồng bộ ' + new Date().toLocaleTimeString(), 'live');
+        if (force) alert('✅ Đã gửi code thành công!');
+      })
+      .catch((err) => {
+        setStatus('● lỗi: ' + err.message, 'error');
+        alert('❌ Lỗi gửi code: ' + err.message);
+      });
   }
 
   editor.addEventListener('input', () => {
     setStatus('● đang gõ...');
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(pushUpdate, 400);
+    debounceTimer = setTimeout(() => pushUpdate(false), 400);
   });
 
-  // Hỗ trợ phím Tab để thụt dòng
+  // Phím Tab
   editor.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -188,7 +197,7 @@
     }
   });
 
-  // Khi Firebase có dữ liệu (kể cả từ người khác sửa), đồng bộ lại vào editor
+  // Đọc dữ liệu Realtime
   onValue(liveRef, (snapshot) => {
     const val = snapshot.val();
     if (val !== null && val !== editor.value && document.activeElement !== editor) {
@@ -201,27 +210,20 @@
     setStatus('● lỗi kết nối: ' + err.message, 'error');
   });
 
-  // Đẩy dữ liệu ban đầu nếu database đang trống
-  window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      if (statusEl.textContent.includes('đang kết nối')) pushUpdate();
-    }, 1500);
-  });
-
   /* ==========================================
-     CÁC TÍNH NĂNG TIỆN ÍCH MỚI
+     SỬA LẠI SỰ KIỆN NÚT BẤM (FORCE SEND)
      ========================================== */
 
-  // 1. Nút Gửi Code Ngay
+  // 1. Nút Gửi Code Ngay (Bắt buộc gửi force = true)
   document.getElementById('btn-send').addEventListener('click', () => {
     clearTimeout(debounceTimer);
-    pushUpdate();
+    pushUpdate(true);
   });
 
-  // 2. Nút Thêm Mẫu Bảo Trì Website
+  // 2. Nút Mẫu Bảo Trì
   document.getElementById('btn-maintenance').addEventListener('click', () => {
-    if (confirm('Bạn có chắc chắn muốn chèn giao diện Thông báo Bảo trì? Code hiện tại sẽ bị thay thế.')) {
-      const maintenanceCode = `<!DOCTYPE html>
+    if (confirm('Chèn mẫu bảo trì? Code hiện tại sẽ bị ghi đè.')) {
+      editor.value = `<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -269,16 +271,15 @@
     <div class="icon">🛠️</div>
     <span class="badge">SYSTEM MAINTENANCE</span>
     <h1 style="margin-top: 12px;">Đang Bảo Trì Hệ Thống</h1>
-    <p>Website đang được nâng cấp để mang lại trải nghiệm tốt nhất. Vui lòng quay lại sau ít phút nữa!</p>
+    <p>Website đang được nâng cấp để mang lại trải nghiệm tốt nhất. Vui lòng quay lại sau!</p>
   </div>
 </body>
 </html>`;
-      editor.value = maintenanceCode;
-      pushUpdate();
+      pushUpdate(true);
     }
   });
 
-  // 3. Nút Định Dạng / Căn Chỉnh Code Đơn Giản
+  // 3. Nút Căn Chỉnh Code
   document.getElementById('btn-format').addEventListener('click', () => {
     let lines = editor.value.split('\n');
     let indent = 0;
@@ -293,21 +294,19 @@
       return padded;
     }).join('\n');
     editor.value = formatted;
-    pushUpdate();
+    pushUpdate(true);
   });
 
-  // 4. Nút Copy Code
+  // 4. Copy Code
   document.getElementById('btn-copy').addEventListener('click', () => {
-    navigator.clipboard.writeText(editor.value).then(() => {
-      alert('Đã copy toàn bộ code vào bộ nhớ tạm!');
-    });
+    navigator.clipboard.writeText(editor.value).then(() => alert('Đã copy code!'));
   });
 
-  // 5. Nút Xóa Sạch
+  // 5. Xóa Sạch
   document.getElementById('btn-clear').addEventListener('click', () => {
-    if (confirm('Bạn có chắc chắn muốn xóa toàn bộ nội dung?')) {
+    if (confirm('Xóa sạch nội dung?')) {
       editor.value = '';
-      pushUpdate();
+      pushUpdate(true);
     }
   });
 </script>
