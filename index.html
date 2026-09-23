@@ -1,556 +1,83 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DIGITALSMOD BIO | Premium Bio Link Platform</title>
-    
-    <meta property="og:title" content="DIGITALSMOD BIO">
-    <meta property="og:description" content="Tạo trang Bio Link cá nhân cao cấp">
-    <meta property="og:type" content="website">
-
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
-
-    <style>
-        /* LOẠI BỎ VIỀN TÔ XANH / FOCUS HIGHLIGHT MẶC ĐỊNH */
-        *, *::before, *::after {
-            -webkit-tap-highlight-color: transparent !important;
-            outline: none !important;
-        }
-
-        input:focus, 
-        textarea:focus, 
-        button:focus, 
-        a:focus, 
-        select:focus {
-            outline: none !important;
-            box-shadow: none !important;
-            border-color: var(--glass-border) !important;
-        }
-
-        .btn-primary:focus {
-            background-color: var(--primary) !important;
-            color: #000 !important;
-        }
-
-        /* THANH TRẠNG THÁI TIẾN ĐỘ THỰC TẾ (PROGRESS BAR) */
-        .publish-progress-container {
-            margin-top: 15px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            padding: 14px;
-            text-align: left;
-        }
-
-        .progress-bar-bg {
-            width: 100%;
-            height: 8px;
-            background: rgba(255, 255, 255, 0.08);
-            border-radius: 6px;
-            overflow: hidden;
-            margin-bottom: 8px;
-        }
-
-        .progress-bar-fill {
-            width: 0%;
-            height: 100%;
-            background: linear-gradient(90deg, var(--primary), #8b5cf6);
-            border-radius: 6px;
-            transition: width 0.25s ease-in-out;
-        }
-
-        .progress-status-text {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .success-url-box {
-            margin-top: 12px;
-            padding: 12px;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .success-url-box a {
-            color: var(--primary);
-            font-weight: 600;
-            text-decoration: none;
-            word-break: break-all;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Màn hình hiển thị</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  #frame {
+    width: 100%;
+    height: 100vh;
+    border: none;
+    display: block;
+  }
+  #waiting {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #111827;
+    color: #9ca3af;
+    font-style: italic;
+  }
+  .status-dot {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 8px 2px rgba(239,68,68,0.6);
+    z-index: 999;
+  }
+  .status-dot.live {
+    background: #22c55e;
+    box-shadow: 0 0 8px 2px rgba(34,197,94,0.6);
+  }
+</style>
 </head>
 <body>
+  <div class="status-dot" id="statusDot"></div>
+  <div id="waiting">Đang chờ mã HTML từ Dashboard...</div>
+  <iframe id="frame" style="display:none;"></iframe>
 
-    <div id="toastContainer"></div>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-    <div id="clickToEnterOverlay" class="enter-overlay hidden">
-        <div class="avatar-wrap">
-            <img id="overlayAvatar" class="profile-avatar" src="" alt="Avatar">
-        </div>
-        <h2 id="overlayName" style="margin-bottom: 8px;"></h2>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">Nhấp vào bất kỳ đâu để vào trang</p>
-        <button class="btn btn-primary" style="width: auto; padding: 10px 24px;">Khám phá</button>
-    </div>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
+    authDomain: "quocdat-396fe.firebaseapp.com",
+    databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "quocdat-396fe",
+    storageBucket: "quocdat-396fe.firebasestorage.app",
+    messagingSenderId: "685476439350",
+    appId: "1:685476439350:web:ba9cd78dca8351c5383f97"
+  };
 
-    <div id="authScreen" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
-        <div class="glass-panel" style="width: 100%; max-width: 400px; padding: 36px 28px; text-align: center;">
-            <h1 style="font-size: 1.6rem; margin-bottom: 6px; font-weight: 800;">DIGITALSMOD</h1>
-            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.85rem;">Platform Bio Link Chuyên Nghiệp</p>
-            
-            <form id="authForm">
-                <div class="form-group">
-                    <label>Email</label>
-                    <input type="email" id="emailInp" class="form-control" required placeholder="user@digitalsmod.site">
-                </div>
-                <div class="form-group">
-                    <label>Mật khẩu</label>
-                    <input type="password" id="passwordInp" class="form-control" required placeholder="••••••••">
-                </div>
-                <button type="submit" class="btn btn-primary" id="authBtn">Đăng nhập</button>
-            </form>
-            <div id="toggleAuth" style="margin-top: 16px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Chưa có tài khoản? Đăng ký ngay</div>
-        </div>
-    </div>
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const liveRef = ref(db, 'liveHtml');
 
-    <div id="appScreen" class="hidden">
-        <div class="sidebar">
-            <div class="sidebar-header">
-                <h3><i class="fa-solid fa-sliders"></i> Editor</h3>
-                <button id="logoutBtn" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i class="fa-solid fa-power-off"></i></button>
-            </div>
-            
-            <div class="sidebar-content">
-                <!-- BƯỚC 1: CẤU HÌNH USERNAME LIÊN KẾT TRƯỚC -->
-                <div class="editor-section">
-                    <h3>Cấu hình Username (Tạo Link Bio)</h3>
-                    <div class="form-group">
-                        <label>URL Hồ sơ (Ví dụ: bio.digitalsmod.site/quocdat)</label>
-                        <input type="text" id="editUsername" class="form-control" placeholder="Nhập username mong muốn...">
-                    </div>
-                </div>
+  const frame = document.getElementById('frame');
+  const waiting = document.getElementById('waiting');
+  const statusDot = document.getElementById('statusDot');
 
-                <!-- BƯỚC 2: CÁC PHẦN CHỈNH SỬA WEB CHỈ HIỆN SAU KHI ĐÃ CÓ USERNAME -->
-                <div id="extendedEditorSections" class="hidden">
-                    <div class="editor-section">
-                        <h3>Thông tin Cá nhân</h3>
-                        <div class="form-group">
-                            <label>Tên hiển thị</label>
-                            <input type="text" id="editName" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>URL Ảnh Avatar</label>
-                            <input type="text" id="editAvatar" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>Mô tả (Bio)</label>
-                            <textarea id="editBio" class="form-control" rows="3"></textarea>
-                        </div>
-                    </div>
-
-                    <div class="editor-section">
-                        <h3>Liên kết <button id="addLinkBtn" style="float:right; background:none; border:none; color:var(--primary); cursor:pointer;"><i class="fa-solid fa-plus"></i> Thêm</button></h3>
-                        <div id="linksEditorContainer"></div>
-                    </div>
-                </div>
-
-                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 10px;"><i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)</button>
-
-                <!-- KHU VỰC HIỂN THỊ TIẾN TRÌNH TẢI THỰC TẾ -->
-                <div id="publishProgressBox" class="publish-progress-container hidden">
-                    <div class="progress-bar-bg">
-                        <div id="publishProgressBar" class="progress-bar-fill"></div>
-                    </div>
-                    <div class="progress-status-text">
-                        <span id="publishStatusStep"><i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo...</span>
-                        <span id="publishPercent">0%</span>
-                    </div>
-                </div>
-
-                <!-- KHU VỰC HIỂN THỊ URL THÀNH CÔNG -->
-                <div id="successUrlBox" class="success-url-box hidden">
-                    <p style="font-size:0.8rem; color:#10b981; margin-bottom:6px;"><i class="fa-solid fa-circle-check"></i> Xuất bản thành công!</p>
-                    <a id="publishedBioLink" href="#" target="_blank">https://bio.digitalsmod.site/</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="preview-area">
-            <div class="phone-mockup">
-                <div id="profileRender" class="profile-container"></div>
-            </div>
-        </div>
-    </div>
-
-    <div id="publicScreen" class="hidden">
-        <div id="publicProfileRender" class="profile-container" style="max-width: 440px; margin: 0 auto; min-height: 100vh;"></div>
-    </div>
-
-    <audio id="bgAudio" loop></audio>
-
-    <script type="module">
-        import { Security } from './js/security.js';
-        import { auth, db } from './js/firebase.js';
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { ref, set, get, child, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
-
-        let currentUserData = { username: "", name: "", avatar: "", bio: "", links: [] };
-        let currentUid = null;
-        let isLoginMode = true;
-
-        // TĂNG TIMEOUT LÊN 10 GIÂY ĐỂ ĐẢM BẢO FIREBASE KHÔNG BỊ PHANH GẤP
-        function withTimeout(promise, ms = 10000) {
-            return Promise.race([
-                promise,
-                new Promise((_, reject) => setTimeout(() => reject(new Error("FIREBASE_TIMEOUT")), ms))
-            ]);
-        }
-
-        // KIỂM TRA USERNAME TRÊN FIREBASE CHỐNG TRÙNG LẶP
-        async function checkUsernameAvailability(username) {
-            const usernameRef = ref(db, `usernames/${username}`);
-            const snapshot = await withTimeout(get(usernameRef), 8000);
-            
-            if (!snapshot.exists()) {
-                return { available: true, data: null };
-            }
-            const data = snapshot.val();
-            if (data && data.uid === currentUid) {
-                return { available: true, data };
-            }
-            return { available: false, data };
-        }
-
-        function showToast(msg) {
-            const container = document.getElementById('toastContainer');
-            const toast = document.createElement('div');
-            toast.className = 'toast';
-            toast.innerText = msg;
-            container.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        }
-
-        // Định tuyến URL SPA
-        const pathUsername = window.location.pathname.replace(/^\//, '').trim();
-        const urlParams = new URLSearchParams(window.location.search);
-        const queryUsername = urlParams.get('u');
-        const targetUsername = pathUsername || queryUsername;
-
-        if (targetUsername && targetUsername !== 'index.html') {
-            document.getElementById('authScreen').classList.add('hidden');
-            document.getElementById('publicScreen').classList.remove('hidden');
-            renderPublicPage(targetUsername);
-        } else {
-            initDashboard();
-        }
-
-        async function renderPublicPage(username) {
-            const validated = Security.validateUsername(username);
-            if (!validated.valid) {
-                document.getElementById('publicProfileRender').innerHTML = `<h3>Username không hợp lệ</h3>`;
-                return;
-            }
-
-            try {
-                const usernameSnapshot = await withTimeout(get(child(ref(db), `usernames/${validated.username}`)), 8000);
-                if (!usernameSnapshot.exists()) {
-                    document.getElementById('publicProfileRender').innerHTML = `<h3>Không tìm thấy người dùng</h3>`;
-                    return;
-                }
-
-                const uid = usernameSnapshot.val().uid;
-                const profileSnapshot = await withTimeout(get(child(ref(db), `profiles/${uid}`)), 8000);
-                
-                if (profileSnapshot.exists()) {
-                    const data = profileSnapshot.val();
-                    const safeName = Security.sanitizeHTML(data.name || 'No Name');
-                    const safeBio = Security.sanitizeHTML(data.bio || '');
-                    const safeAvatar = Security.sanitizeURL(data.avatar);
-
-                    document.getElementById('publicProfileRender').innerHTML = `
-                        <div class="avatar-wrap">
-                            <img class="profile-avatar" src="${safeAvatar}" alt="Avatar">
-                            ${data.verified ? '<div class="verified-badge"><i class="fa-solid fa-check"></i></div>' : ''}
-                        </div>
-                        <h2 class="profile-name">${safeName}</h2>
-                        <p class="profile-bio">${safeBio}</p>
-                        <div class="links-wrapper">
-                            ${(data.links || []).map(link => {
-                                const safeTitle = Security.sanitizeHTML(link.title);
-                                const safeUrl = Security.sanitizeURL(link.url);
-                                return `
-                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-btn">
-                                        <span>${safeTitle}</span>
-                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                    </a>
-                                `;
-                            }).join('')}
-                        </div>
-                    `;
-                    document.title = `${safeName} (@${validated.username}) - DIGITALSMOD BIO`;
-                }
-            } catch (err) {
-                console.error("Lỗi đọc Public Page:", err);
-                document.getElementById('publicProfileRender').innerHTML = `<h3>Lỗi khi tải dữ liệu public profile</h3>`;
-            }
-        }
-
-        function initDashboard() {
-            document.getElementById('toggleAuth').addEventListener('click', () => {
-                isLoginMode = !isLoginMode;
-                document.getElementById('authBtn').innerText = isLoginMode ? "Đăng nhập" : "Đăng ký";
-                document.getElementById('toggleAuth').innerText = isLoginMode ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập";
-            });
-
-            document.getElementById('authForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('emailInp').value;
-                const password = document.getElementById('passwordInp').value;
-
-                try {
-                    if (isLoginMode) {
-                        await signInWithEmailAndPassword(auth, email, password);
-                    } else {
-                        const userCred = await createUserWithEmailAndPassword(auth, email, password);
-                        await set(ref(db, `users/${userCred.user.uid}`), { email, role: 'user', vip: false });
-                    }
-                } catch (err) {
-                    showToast("Lỗi: " + err.message);
-                }
-            });
-
-            document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
-
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    currentUid = user.uid;
-                    document.getElementById('authScreen').classList.add('hidden');
-                    document.getElementById('appScreen').classList.remove('hidden');
-                    await loadDashboardData(user.uid);
-                } else {
-                    currentUid = null;
-                    document.getElementById('authScreen').classList.remove('hidden');
-                    document.getElementById('appScreen').classList.add('hidden');
-                }
-            });
-
-            document.getElementById('addLinkBtn').addEventListener('click', () => {
-                if (!currentUserData.links) currentUserData.links = [];
-                if (currentUserData.links.length >= 10) {
-                    showToast("Tài khoản Free giới hạn tối đa 10 links");
-                    return;
-                }
-                currentUserData.links.push({ title: "", url: "" });
-                renderLinksInputs();
-                updateLivePreview();
-            });
-
-            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
-            
-            ['editUsername', 'editName', 'editAvatar', 'editBio'].forEach(id => {
-                document.getElementById(id).addEventListener('input', updateLivePreview);
-            });
-        }
-
-        async function loadDashboardData(uid) {
-            try {
-                // TỰ ĐỘNG BỎ QUA NẾU LẦN ĐẦU TẢI CHƯA CÓ PROFILE (KHÔNG HIỆN THÔNG BÁO LỖI)
-                const snapshot = await withTimeout(get(child(ref(db), `profiles/${uid}`)), 8000).catch(() => null);
-                if (snapshot && snapshot.exists()) {
-                    currentUserData = snapshot.val();
-                    if (!currentUserData.links) currentUserData.links = [];
-                } else {
-                    currentUserData = { username: "", name: "", avatar: "", bio: "", links: [] };
-                }
-
-                document.getElementById('editUsername').value = currentUserData.username || '';
-                document.getElementById('editName').value = currentUserData.name || '';
-                document.getElementById('editAvatar').value = currentUserData.avatar || '';
-                document.getElementById('editBio').value = currentUserData.bio || '';
-                
-                checkUsernameUIState();
-                renderLinksInputs();
-                updateLivePreview();
-            } catch (err) {
-                console.error("Lỗi nạp thông tin:", err);
-            }
-        }
-
-        function checkUsernameUIState() {
-            const extendedSection = document.getElementById('extendedEditorSections');
-            if (currentUserData.username && currentUserData.username.trim() !== '') {
-                extendedSection.classList.remove('hidden');
-            } else {
-                extendedSection.classList.add('hidden');
-            }
-        }
-
-        function renderLinksInputs() {
-            const container = document.getElementById('linksEditorContainer');
-            container.innerHTML = '';
-            (currentUserData.links || []).forEach((link, idx) => {
-                const card = document.createElement('div');
-                card.style.cssText = "background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; margin-bottom: 10px;";
-                card.innerHTML = `
-                    <input type="text" class="form-control" style="margin-bottom:6px" placeholder="Tiêu đề" value="${Security.sanitizeHTML(link.title)}">
-                    <input type="url" class="form-control" placeholder="URL (https://...)" value="${Security.sanitizeURL(link.url)}">
-                    <button style="background:none; border:none; color:var(--danger); cursor:pointer; margin-top:6px; font-size:0.8rem;"><i class="fa-solid fa-trash"></i> Xóa</button>
-                `;
-                
-                const inputs = card.querySelectorAll('input');
-                inputs[0].addEventListener('input', (e) => { currentUserData.links[idx].title = e.target.value; updateLivePreview(); });
-                inputs[1].addEventListener('input', (e) => { currentUserData.links[idx].url = e.target.value; updateLivePreview(); });
-                card.querySelector('button').addEventListener('click', () => {
-                    currentUserData.links.splice(idx, 1);
-                    renderLinksInputs();
-                    updateLivePreview();
-                });
-
-                container.appendChild(card);
-            });
-        }
-
-        function updateLivePreview() {
-            currentUserData.name = document.getElementById('editName').value;
-            currentUserData.avatar = document.getElementById('editAvatar').value;
-            currentUserData.bio = document.getElementById('editBio').value;
-
-            const safeName = Security.sanitizeHTML(currentUserData.name || 'Your Name');
-            const safeBio = Security.sanitizeHTML(currentUserData.bio || '');
-            const safeAvatar = Security.sanitizeURL(currentUserData.avatar);
-
-            document.getElementById('profileRender').innerHTML = `
-                <div class="avatar-wrap">
-                    <img class="profile-avatar" src="${safeAvatar}" alt="Avatar">
-                </div>
-                <h2 class="profile-name">${safeName}</h2>
-                <p class="profile-bio">${safeBio}</p>
-                <div class="links-wrapper">
-                    ${(currentUserData.links || []).map(link => `
-                        <a href="${Security.sanitizeURL(link.url)}" target="_blank" class="link-btn">
-                            <span>${Security.sanitizeHTML(link.title || 'Untitled')}</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </a>
-                    `).join('')}
-                </div>
-            `;
-        }
-
-        function updatePublishProgress(percent, stepMessage) {
-            const progressBox = document.getElementById('publishProgressBox');
-            const progressBar = document.getElementById('publishProgressBar');
-            const statusStep = document.getElementById('publishStatusStep');
-            const percentText = document.getElementById('publishPercent');
-
-            progressBox.classList.remove('hidden');
-            progressBar.style.width = percent + '%';
-            percentText.innerText = percent + '%';
-            statusStep.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stepMessage}`;
-        }
-
-        async function saveProfile() {
-            if (!currentUid) {
-                showToast("Chưa xác thực tài khoản! Vui lòng đăng nhập lại.");
-                return;
-            }
-
-            const rawUsername = document.getElementById('editUsername').value;
-            
-            // Step 1: Kiểm tra Username (10%)
-            updatePublishProgress(10, "Kiểm tra Username...");
-            const validated = Security.validateUsername(rawUsername);
-
-            if (!validated.valid) {
-                document.getElementById('publishProgressBox').classList.add('hidden');
-                showToast(validated.error);
-                return;
-            }
-
-            const newUsername = validated.username.toLowerCase().trim();
-            const oldUsername = currentUserData.username ? currentUserData.username.toLowerCase().trim() : "";
-
-            const saveBtn = document.getElementById('saveProfileBtn');
-            saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
-
-            try {
-                // Step 2: Kiểm tra tính khả dụng (30%)
-                updatePublishProgress(30, "Kiểm tra tính khả dụng URL...");
-                
-                let checkResult = { available: true };
-                try {
-                    checkResult = await checkUsernameAvailability(newUsername);
-                } catch (checkErr) {
-                    console.warn("Đang bỏ qua nghẽn đọc Firebase để lưu trực tiếp:", checkErr);
-                }
-
-                if (!checkResult.available) {
-                    document.getElementById('publishProgressBox').classList.add('hidden');
-                    showToast("Username này đã được sử dụng bởi tài khoản khác!");
-                    saveBtn.disabled = false;
-                    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
-                    return;
-                }
-
-                // Step 3: Tạo URL Bio mới (55%)
-                updatePublishProgress(55, "Khởi tạo URL Bio...");
-                await withTimeout(set(ref(db, `usernames/${newUsername}`), { uid: currentUid }), 10000);
-
-                // Step 4: Lưu hồ sơ cá nhân (75%)
-                updatePublishProgress(75, "Lưu thông tin hồ sơ...");
-                currentUserData.username = newUsername;
-                await withTimeout(set(ref(db, `profiles/${currentUid}`), currentUserData), 10000);
-
-                // Step 5: Đồng bộ dữ liệu & Dọn dẹp Username cũ (95%)
-                updatePublishProgress(95, "Đồng bộ dữ liệu hệ thống...");
-                if (oldUsername && oldUsername !== newUsername) {
-                    try {
-                        await withTimeout(remove(ref(db, `usernames/${oldUsername}`)), 5000);
-                    } catch (cleanupErr) {
-                        console.warn("Không thể dọn dẹp Username cũ:", cleanupErr);
-                    }
-                }
-
-                // Step 6: 100% Xuất bản thành công!
-                updatePublishProgress(100, "Xuất bản hoàn tất!");
-
-                setTimeout(() => {
-                    document.getElementById('publishProgressBox').classList.add('hidden');
-                    checkUsernameUIState();
-                    
-                    const fullBioUrl = `${window.location.origin}/${newUsername}`;
-                    const successBox = document.getElementById('successUrlBox');
-                    const successLink = document.getElementById('publishedBioLink');
-                    
-                    successLink.href = fullBioUrl;
-                    successLink.innerText = fullBioUrl;
-                    successBox.classList.remove('hidden');
-
-                    showToast("Đã xuất bản Bio Link thành công!");
-                }, 400);
-
-            } catch (error) {
-                console.error("Firebase saveProfile error:", error);
-                document.getElementById('publishProgressBox').classList.add('hidden');
-
-                if (error?.code === 'PERMISSION_DENIED' || error?.code === 'permission-denied') {
-                    showToast("Firebase Rules đang chặn quyền ghi dữ liệu!");
-                } else if (error?.message === "FIREBASE_TIMEOUT") {
-                    showToast("Đường truyền quá chậm. Vui lòng thử lại!");
-                } else {
-                    showToast("Lỗi xuất bản: " + (error.message || "Không thể lưu dữ liệu"));
-                }
-            } finally {
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
-            }
-        }
-    </script>
+  onValue(liveRef, (snapshot) => {
+    const html = snapshot.val();
+    if (!html) return;
+    waiting.style.display = 'none';
+    frame.style.display = 'block';
+    frame.srcdoc = html;
+    statusDot.classList.add('live');
+  }, (err) => {
+    waiting.textContent = 'Lỗi kết nối Firebase: ' + err.message;
+  });
+</script>
 </body>
 </html>
