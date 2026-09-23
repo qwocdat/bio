@@ -1,0 +1,2 @@
+/api/* https://asia-southeast1-quocdat-396fe.cloudfunctions.net/:splat  200
+/* /index.html                                                     200
