@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard điều khiển - Code Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+  }
+  .topbar h1 {
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .status {
+    font-size: 0.8rem;
+    color: #f59e0b;
+  }
+  .status.live { color: #22c55e; }
+  .status.error { color: #ef4444; }
+  #editor {
+    width: 100%;
+    height: calc(100vh - 46px);
+    background: #0f172a;
+    color: #e2e8f0;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 16px;
+    font-family: "Fira Code", "Cascadia Code", Consolas, Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    tab-size: 2;
+    white-space: pre;
+  }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>🎛️ dash.html — gõ mã HTML, index.html cập nhật realtime cho MỌI người</h1>
+    <span class="status" id="status">● đang kết nối...</span>
+  </div>
+
+  <textarea id="editor" spellcheck="false">&lt;!DOCTYPE html&gt;
+&lt;html lang="vi"&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;style&gt;
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: sans-serif;
+    background: linear-gradient(135deg, #1f2937, #111827);
+    color: #fff;
+    text-align: center;
+  }
+  h1 { font-size: 2.5rem; margin-bottom: 12px; }
+  p { opacity: .8; max-width: 500px; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;Xin chào 👋&lt;/h1&gt;
+  &lt;p&gt;Sửa mã HTML bên khung soạn thảo này, index.html của mọi người sẽ cập nhật ngay lập tức.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</textarea>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
+    authDomain: "quocdat-396fe.firebaseapp.com",
+    databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "quocdat-396fe",
+    storageBucket: "quocdat-396fe.firebasestorage.app",
+    messagingSenderId: "685476439350",
+    appId: "1:685476439350:web:ba9cd78dca8351c5383f97"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const liveRef = ref(db, 'liveHtml');
+
+  const editor = document.getElementById('editor');
+  const statusEl = document.getElementById('status');
+
+  let debounceTimer = null;
+  let isRemoteUpdate = false; // tránh vòng lặp khi tự nhận lại chính mình
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + (cls || '');
+  }
+
+  function pushUpdate() {
+    if (isRemoteUpdate) return;
+    set(liveRef, editor.value)
+      .then(() => setStatus('● đã đồng bộ ' + new Date().toLocaleTimeString(), 'live'))
+      .catch((err) => setStatus('● lỗi: ' + err.message, 'error'));
+  }
+
+  editor.addEventListener('input', () => {
+    setStatus('● đang gõ...');
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(pushUpdate, 400);
+  });
+
+  // Hỗ trợ phím Tab để thụt dòng
+  editor.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+    }
+  });
+
+  // Khi Firebase có dữ liệu (kể cả từ người khác sửa), đồng bộ lại vào editor
+  onValue(liveRef, (snapshot) => {
+    const val = snapshot.val();
+    if (val !== null && val !== editor.value && document.activeElement !== editor) {
+      isRemoteUpdate = true;
+      editor.value = val;
+      isRemoteUpdate = false;
+    }
+    setStatus('● đã kết nối Firebase', 'live');
+  }, (err) => {
+    setStatus('● lỗi kết nối: ' + err.message, 'error');
+  });
+
+  // Đẩy dữ liệu ban đầu nếu database đang trống
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      if (statusEl.textContent.includes('đang kết nối')) pushUpdate();
+    }, 1500);
+  });
+</script>
+</body>
+</html>
