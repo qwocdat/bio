@@ -3,48 +3,100 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Màn hình hiển thị</title>
+<title>Màn hình hiển thị — Live Preview</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  html, body { 
+    height: 100%; 
+    width: 100%; 
+    overflow: hidden; 
+    background: #0b0f19;
+  }
+  
   #frame {
     width: 100%;
     height: 100vh;
     border: none;
-    display: block;
+    display: none;
+    background: transparent;
   }
+
   #waiting {
     position: fixed;
     inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 16px;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #111827;
-    color: #9ca3af;
-    font-style: italic;
+    background: #0f172a;
+    color: #94a3b8;
+    z-index: 10;
   }
+
+  /* Spinner quay tròn khi đang tải */
+  .loader {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Dot trạng thái live */
   .status-dot {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    top: 14px;
+    right: 14px;
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: #ef4444;
-    box-shadow: 0 0 8px 2px rgba(239,68,68,0.6);
+    box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.6);
     z-index: 999;
+    cursor: pointer;
+    transition: all 0.3s ease;
   }
+
   .status-dot.live {
     background: #22c55e;
-    box-shadow: 0 0 8px 2px rgba(34,197,94,0.6);
+    box-shadow: 0 0 10px 2px rgba(34, 197, 94, 0.6);
+  }
+
+  .status-dot:hover::after {
+    content: "Bấm để ẩn/hiện";
+    position: absolute;
+    right: 18px;
+    top: -4px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    font-family: sans-serif;
   }
 </style>
 </head>
 <body>
-  <div class="status-dot" id="statusDot"></div>
-  <div id="waiting">Đang chờ mã HTML từ Dashboard...</div>
-  <iframe id="frame" style="display:none;"></iframe>
+
+  <!-- Trạng thái kết nối Firebase -->
+  <div class="status-dot" id="statusDot" title="Trạng thái kết nối Live"></div>
+
+  <!-- Màn hình chờ khi chưa có dữ liệu -->
+  <div id="waiting">
+    <div class="loader" id="loader"></div>
+    <span id="waitingText">Đang kết nối Firebase và nhận code từ Dashboard...</span>
+  </div>
+
+  <!-- Iframe render trang web -->
+  <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
@@ -60,23 +112,60 @@
     appId: "1:685476439350:web:ba9cd78dca8351c5383f97"
   };
 
+  // Khởi tạo Firebase
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
   const liveRef = ref(db, 'liveHtml');
 
   const frame = document.getElementById('frame');
   const waiting = document.getElementById('waiting');
+  const waitingText = document.getElementById('waitingText');
+  const loader = document.getElementById('loader');
   const statusDot = document.getElementById('statusDot');
 
+  let currentBlobUrl = null;
+
+  // Lắng nghe thay đổi mã HTML từ Firebase Realtime Database
   onValue(liveRef, (snapshot) => {
     const html = snapshot.val();
-    if (!html) return;
-    waiting.style.display = 'none';
-    frame.style.display = 'block';
-    frame.srcdoc = html;
-    statusDot.classList.add('live');
+
+    if (html !== null && html.trim() !== '') {
+      // Ẩn màn hình chờ
+      waiting.style.display = 'none';
+      frame.style.display = 'block';
+
+      // Giải phóng bộ nhớ Blob URL cũ nếu có
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+
+      // Tạo Blob URL mới giúp load code ổn định, tránh nhấp nháy
+      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      currentBlobUrl = URL.createObjectURL(blob);
+      frame.src = currentBlobUrl;
+
+      // Cập nhật trạng thái Live thành công
+      statusDot.classList.add('live');
+    } else {
+      // Nếu Database trống
+      frame.style.display = 'none';
+      waiting.style.display = 'flex';
+      waitingText.textContent = 'Chưa có dữ liệu code. Vui lòng gõ nội dung từ Dashboard...';
+      if (loader) loader.style.display = 'none';
+      statusDot.classList.remove('live');
+    }
   }, (err) => {
-    waiting.textContent = 'Lỗi kết nối Firebase: ' + err.message;
+    // Xử lý khi gặp lỗi kết nối
+    frame.style.display = 'none';
+    waiting.style.display = 'flex';
+    waitingText.textContent = 'Lỗi kết nối Firebase: ' + err.message;
+    if (loader) loader.style.display = 'none';
+    statusDot.classList.remove('live');
+  });
+
+  // Toggle ẩn/hiện nút status dot khi bấm vào
+  statusDot.addEventListener('click', () => {
+    statusDot.style.opacity = statusDot.style.opacity === '0.1' ? '1' : '0.1';
   });
 </script>
 </body>
