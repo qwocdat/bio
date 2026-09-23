@@ -1,172 +1,1496 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Màn hình hiển thị — Live Preview</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { 
-    height: 100%; 
-    width: 100%; 
-    overflow: hidden; 
-    background: #0b0f19;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DIGITALSMOD BIO | Your identity. Your links. Your world.</title>
+  <meta name="description" content="Create your own premium Bio Link with DIGITALSMOD BIO. Gom mạng xã hội, website, sản phẩm và tiện ích của bạn vào một nơi.">
+  <meta name="theme-color" content="#030712">
+  <link rel="canonical" href="https://bio.digitalsmod.site">
   
-  #frame {
-    width: 100%;
-    height: 100vh;
-    border: none;
-    display: none;
-    background: transparent;
-  }
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://bio.digitalsmod.site">
+  <meta property="og:title" content="DIGITALSMOD BIO | Your identity. Your links. Your world.">
+  <meta property="og:description" content="Tạo một trang Bio cá nhân đẹp, nhanh và khác biệt cùng DIGITALSMOD BIO.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200">
 
-  #waiting {
-    position: fixed;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0f172a;
-    color: #94a3b8;
-    z-index: 10;
-  }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-  /* Spinner quay tròn khi đang tải */
-  .loader {
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    border-top-color: #3b82f6;
-    animation: spin 1s linear infinite;
-  }
+  <style>
+    /* ==========================================
+       1. VARIABLES & BASE STYLES
+       ========================================== */
+    :root {
+      --bg-dark: #030712;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-hover-border: rgba(255, 255, 255, 0.2);
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent-cyan: #06b6d4;
+      --accent-purple: #8b5cf6;
+      --accent-glow: rgba(6, 182, 212, 0.15);
+      --radius-lg: 24px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
+      --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
 
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
+    /* PREVIEW THEMES */
+    [data-preview-theme="glass"] {
+      --prev-bg: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+      --prev-accent: #06b6d4;
+      --prev-card-bg: rgba(255, 255, 255, 0.05);
+      --prev-border: rgba(255, 255, 255, 0.12);
+      --prev-text: #ffffff;
+    }
+    [data-preview-theme="midnight"] {
+      --prev-bg: linear-gradient(135deg, #0f172a, #020617);
+      --prev-accent: #3b82f6;
+      --prev-card-bg: rgba(15, 23, 42, 0.6);
+      --prev-border: rgba(59, 130, 246, 0.2);
+      --prev-text: #f8fafc;
+    }
+    [data-preview-theme="cyber"] {
+      --prev-bg: linear-gradient(135deg, #18042c, #050515);
+      --prev-accent: #f43f5e;
+      --prev-card-bg: rgba(244, 63, 94, 0.08);
+      --prev-border: rgba(244, 63, 94, 0.3);
+      --prev-text: #fff1f2;
+    }
+    [data-preview-theme="aurora"] {
+      --prev-bg: linear-gradient(135deg, #064e3b, #022c22);
+      --prev-accent: #10b981;
+      --prev-card-bg: rgba(16, 185, 129, 0.08);
+      --prev-border: rgba(16, 185, 129, 0.25);
+      --prev-text: #ecfdf5;
+    }
 
-  /* Dot trạng thái live */
-  .status-dot {
-    position: fixed;
-    top: 14px;
-    right: 14px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.6);
-    z-index: 999;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-  .status-dot.live {
-    background: #22c55e;
-    box-shadow: 0 0 10px 2px rgba(34, 197, 94, 0.6);
-  }
+    html {
+      scroll-behavior: smooth;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow-x: hidden;
+    }
 
-  .status-dot:hover::after {
-    content: "Bấm để ẩn/hiện";
-    position: absolute;
-    right: 18px;
-    top: -4px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #fff;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 11px;
-    white-space: nowrap;
-    font-family: sans-serif;
-  }
-</style>
+    body {
+      position: relative;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 100% 50%, rgba(6, 182, 212, 0.05) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      outline: none;
+    }
+
+    /* Background noise */
+    .noise-bg {
+      position: fixed;
+      inset: 0;
+      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.025"/></svg>');
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Container */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Glass Effect Utilities */
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      transition: var(--transition);
+    }
+
+    .glass-card:hover {
+      border-color: var(--card-hover-border);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent-cyan);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 28px;
+      border-radius: 100px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background: #ffffff;
+      color: #000000;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      color: #ffffff;
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(12px);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    /* ==========================================
+       2. NAVBAR
+       ========================================== */
+    .navbar-wrapper {
+      position: fixed;
+      top: 20px;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 0 24px;
+    }
+
+    .navbar {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-radius: 100px;
+      background: rgba(3, 7, 18, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+    }
+
+    .brand-logo {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-logo .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent-cyan);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .mobile-toggle {
+      display: none;
+      background: none;
+      color: #fff;
+      font-size: 1.5rem;
+    }
+
+    /* Mobile Menu Dropdown */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.95);
+      backdrop-filter: blur(24px);
+      z-index: 99;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 32px;
+    }
+
+    .mobile-menu.active {
+      display: flex;
+    }
+
+    /* ==========================================
+       3. HERO SECTION
+       ========================================== */
+    .hero {
+      padding-top: 160px;
+      padding-bottom: 80px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 24px;
+    }
+
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.6) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-desc {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 480px;
+    }
+
+    .hero-btns {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    /* Profile Mockup Component */
+    .mockup-container {
+      position: relative;
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mockup-phone {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 36px;
+      padding: 16px;
+      background: var(--prev-bg);
+      border: 1px solid var(--prev-border);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 30px var(--accent-glow);
+      position: relative;
+      overflow: hidden;
+      transition: var(--transition);
+      animation: floating 6s ease-in-out infinite;
+    }
+
+    @keyframes floating {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-12px) rotate(1deg); }
+    }
+
+    .mockup-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(16px);
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      cursor: pointer;
+      transition: opacity 0.5s ease;
+    }
+
+    .mockup-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .mockup-profile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      padding-top: 20px;
+    }
+
+    .mockup-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--prev-accent);
+      box-shadow: 0 0 15px var(--prev-accent);
+    }
+
+    .mockup-name {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--prev-text);
+    }
+
+    .mockup-bio {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      padding: 0 10px;
+    }
+
+    .mockup-socials {
+      display: flex;
+      gap: 12px;
+      margin: 8px 0;
+    }
+
+    .mockup-social-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--prev-text);
+    }
+
+    /* Music Player Demo */
+    .music-card {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--prev-card-bg);
+      border: 1px solid var(--prev-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .music-play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--prev-accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .music-info {
+      flex: 1;
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .music-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--prev-text);
+    }
+
+    .music-artist {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    /* Profile Links */
+    .mockup-links {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .mockup-link-card {
+      width: 100%;
+      padding: 12px 16px;
+      background: var(--prev-card-bg);
+      border: 1px solid var(--prev-border);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--prev-text);
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: var(--transition);
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    .mockup-link-card.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .mockup-link-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(1.02);
+    }
+
+    .mockup-footer {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 10px;
+      border-top: 1px solid var(--prev-border);
+    }
+
+    /* ==========================================
+       4. SECTIONS COMMON
+       ========================================== */
+    section {
+      padding: 100px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .section-desc {
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    /* Grid Layouts */
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    /* ==========================================
+       5. FEATURES SECTION
+       ========================================== */
+    .feature-card {
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-cyan);
+    }
+
+    .feature-card h3 {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    /* ==========================================
+       6. LIVE SHOWCASE & CUSTOMIZATION
+       ========================================== */
+    .showcase-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .checklist {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      list-style: none;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+    }
+
+    .checklist i {
+      color: var(--accent-cyan);
+    }
+
+    /* Theme Switcher Bar */
+    .theme-switcher {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .theme-btn {
+      padding: 10px 20px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .theme-btn.active, .theme-btn:hover {
+      background: #ffffff;
+      color: #000;
+    }
+
+    /* ==========================================
+       7. SHARE SECTION
+       ========================================== */
+    .share-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .url-input-group {
+      display: flex;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 100px;
+      padding: 6px 6px 6px 20px;
+      width: 100%;
+    }
+
+    .url-input-group span {
+      font-family: monospace;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      flex: 1;
+      text-align: left;
+    }
+
+    .qr-preview {
+      width: 120px;
+      height: 120px;
+      background: #fff;
+      padding: 10px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-preview img {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ==========================================
+       8. HOW IT WORKS & USE CASES
+       ========================================== */
+    .steps-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      position: relative;
+    }
+
+    .step-card {
+      padding: 32px;
+      position: relative;
+    }
+
+    .step-num {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: rgba(255, 255, 255, 0.1);
+      margin-bottom: 12px;
+    }
+
+    /* ==========================================
+       9. PRICING & FAQ
+       ========================================== */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .pricing-card {
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .pricing-card.popular {
+      border-color: var(--accent-purple);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.15);
+    }
+
+    .price {
+      font-size: 2.5rem;
+      font-weight: 800;
+    }
+
+    .price span {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+
+    /* Accordion FAQ */
+    .faq-list {
+      max-width: 700px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .faq-item {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: var(--transition);
+    }
+
+    .faq-question {
+      width: 100%;
+      padding: 20px;
+      text-align: left;
+      background: none;
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      padding: 0 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      line-height: 1.6;
+      transition: max-height 0.3s cubic-bezier(0, 1, 0, 1), padding 0.3s ease;
+    }
+
+    .faq-item.active .faq-answer {
+      max-height: 200px;
+      padding: 0 20px 20px 20px;
+    }
+
+    .faq-item.active i {
+      transform: rotate(180deg);
+    }
+
+    /* ==========================================
+       10. CTA SECTION & FOOTER
+       ========================================== */
+    .cta-box {
+      text-align: center;
+      padding: 80px 40px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(6, 182, 212, 0.1));
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 40px 0;
+      margin-top: 60px;
+    }
+
+    .footer-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* ==========================================
+       11. RESPONSIVE DESIGN (MOBILE FIRST)
+       ========================================== */
+    @media (max-width: 992px) {
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+        padding-top: 120px;
+      }
+      .hero-content {
+        align-items: center;
+      }
+      .showcase-container {
+        grid-template-columns: 1fr;
+      }
+      .grid-3, .grid-4, .steps-container {
+        grid-template-columns: 1fr;
+      }
+      .pricing-grid {
+        grid-template-columns: 1fr;
+      }
+      .nav-links, .nav-actions {
+        display: none;
+      }
+      .mobile-toggle {
+        display: block;
+      }
+    }
+
+    @media (max-width: 576px) {
+      .hero-title {
+        font-size: 2.4rem;
+      }
+      .hero-btns {
+        flex-direction: column;
+      }
+      .hero-btns .btn {
+        width: 100%;
+      }
+      .checklist {
+        grid-template-columns: 1fr;
+      }
+      .theme-switcher {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after {
+        animation-delay: -1ms !important;
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        background-attachment: initial !important;
+        scroll-behavior: auto !important;
+        transition-delay: 0s !important;
+        transition-duration: 0s !important;
+      }
+    }
+  </style>
 </head>
-<body>
+<body data-preview-theme="glass">
 
-  <!-- Trạng thái kết nối Firebase -->
-  <div class="status-dot" id="statusDot" title="Trạng thái kết nối Live"></div>
+  <div class="noise-bg"></div>
 
-  <!-- Màn hình chờ khi chưa có dữ liệu -->
-  <div id="waiting">
-    <div class="loader" id="loader"></div>
-    <span id="waitingText">Đang kết nối Firebase và nhận code từ Dashboard...</span>
+  <div class="navbar-wrapper">
+    <nav class="navbar">
+      <a href="#" class="brand-logo">
+        <span class="dot"></span>
+        DIGITALSMOD BIO
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#showcase">Themes</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+        <li><a href="#pricing">Pricing</a></li>
+        <li><a href="#faq">FAQ</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button class="btn btn-secondary" style="padding: 8px 18px; font-size: 0.85rem;" onclick="Auth.login()">Login</button>
+        <button class="btn btn-primary" style="padding: 8px 18px; font-size: 0.85rem;" onclick="Auth.register()">Create Bio</button>
+      </div>
+      <button class="mobile-toggle" id="mobile-toggle-btn" aria-label="Toggle Menu">
+        <i data-lucide="menu"></i>
+      </button>
+    </nav>
   </div>
 
-  <!-- Iframe render trang web -->
-  <iframe id="frame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
+  <div class="mobile-menu" id="mobile-menu">
+    <button style="position: absolute; top: 30px; right: 30px; background: none; color: #fff; font-size: 2rem;" id="mobile-close-btn">&times;</button>
+    <a href="#features" class="mobile-link">Features</a>
+    <a href="#showcase" class="mobile-link">Themes</a>
+    <a href="#how-it-works" class="mobile-link">How It Works</a>
+    <a href="#pricing" class="mobile-link">Pricing</a>
+    <a href="#faq" class="mobile-link">FAQ</a>
+    <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px; margin-top: 20px;">
+      <button class="btn btn-secondary" onclick="Auth.login()">Login</button>
+      <button class="btn btn-primary" onclick="Auth.register()">Create Bio</button>
+    </div>
+  </div>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+  <div class="container">
+    
+    <section class="hero">
+      <div class="hero-content">
+        <div class="badge">
+          <i data-lucide="sparkles" style="width: 14px;"></i> THE NEXT GENERATION BIO LINK
+        </div>
+        <h1 class="hero-title">Một trang.<br>Toàn bộ thế giới của bạn.</h1>
+        <p class="hero-desc">Tạo một trang Bio cá nhân đẹp, nhanh và khác biệt. Gom mạng xã hội, website, sản phẩm, tiện ích và mọi liên kết của bạn vào một nơi.</p>
+        <div class="hero-btns">
+          <button class="btn btn-primary" onclick="Auth.register()">Create your Bio</button>
+          <a href="#showcase" class="btn btn-secondary">View Demo</a>
+        </div>
+      </div>
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
-    authDomain: "quocdat-396fe.firebaseapp.com",
-    databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "quocdat-396fe",
-    storageBucket: "quocdat-396fe.firebasestorage.app",
-    messagingSenderId: "685476439350",
-    appId: "1:685476439350:web:ba9cd78dca8351c5383f97"
-  };
+      <div class="mockup-container">
+        <div class="mockup-phone" id="hero-mockup">
+          
+          <div class="mockup-overlay" id="demo-overlay">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" style="width: 60px; height: 60px; border-radius: 50%; border: 2px solid #fff;" alt="Avatar">
+            <div style="text-align: center;">
+              <span style="font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; color: var(--accent-cyan);">CLICK TO ENTER</span>
+              <p style="font-size: 0.65rem; color: var(--text-muted); margin-top: 4px;">Khám phá trải nghiệm tương tác</p>
+            </div>
+          </div>
 
-  // Khởi tạo Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const liveRef = ref(db, 'liveHtml');
+          <div class="mockup-profile">
+            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" class="mockup-avatar" alt="Avatar Demo">
+            <div>
+              <div class="mockup-name">DIGITALSMOD <i data-lucide="check-circle-2" style="width: 16px; color: var(--accent-cyan); fill: rgba(6, 182, 212, 0.2);"></i></div>
+              <div class="mockup-bio">Creator & Digital Architect</div>
+            </div>
 
-  const frame = document.getElementById('frame');
-  const waiting = document.getElementById('waiting');
-  const waitingText = document.getElementById('waitingText');
-  const loader = document.getElementById('loader');
-  const statusDot = document.getElementById('statusDot');
+            <div class="mockup-socials">
+              <div class="mockup-social-icon"><i data-lucide="instagram" style="width: 16px;"></i></div>
+              <div class="mockup-social-icon"><i data-lucide="twitter" style="width: 16px;"></i></div>
+              <div class="mockup-social-icon"><i data-lucide="youtube" style="width: 16px;"></i></div>
+              <div class="mockup-social-icon"><i data-lucide="github" style="width: 16px;"></i></div>
+            </div>
 
-  let currentBlobUrl = null;
+            <div class="music-card">
+              <button class="music-play-btn" id="demo-music-btn" aria-label="Play Music">
+                <i data-lucide="play" style="width: 14px; id="music-icon""></i>
+              </button>
+              <div class="music-info">
+                <div class="music-title">Midnight Cyber Ambient</div>
+                <div class="music-artist">DIGITALSMOD Audio</div>
+              </div>
+            </div>
 
-  // Lắng nghe thay đổi mã HTML từ Firebase Realtime Database
-  onValue(liveRef, (snapshot) => {
-    const html = snapshot.val();
+            <div class="mockup-links" id="demo-links-container">
+              <div class="mockup-link-card">
+                <span><i data-lucide="globe" style="width: 14px; margin-right: 6px;"></i> Website chính thức</span>
+                <i data-lucide="arrow-up-right" style="width: 14px;"></i>
+              </div>
+              <div class="mockup-link-card">
+                <span><i data-lucide="shopping-bag" style="width: 14px; margin-right: 6px;"></i> Cửa hàng Digital Store</span>
+                <i data-lucide="arrow-up-right" style="width: 14px;"></i>
+              </div>
+              <div class="mockup-link-card">
+                <span><i data-lucide="qr-code" style="width: 14px; margin-right: 6px;"></i> Công cụ QR Generator</span>
+                <i data-lucide="arrow-up-right" style="width: 14px;"></i>
+              </div>
+            </div>
 
-    if (html !== null && html.trim() !== '') {
-      // Ẩn màn hình chờ
-      waiting.style.display = 'none';
-      frame.style.display = 'block';
+            <div class="mockup-footer">
+              <span><i data-lucide="eye" style="width: 12px;"></i> 12,480 views</span>
+              <span>bio.digitalsmod.site</span>
+            </div>
 
-      // Giải phóng bộ nhớ Blob URL cũ nếu có
-      if (currentBlobUrl) {
-        URL.revokeObjectURL(currentBlobUrl);
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="section-header">
+        <div class="badge">FEATURES</div>
+        <h2 class="section-title">Everything you need.<br>Nothing you don't.</h2>
+        <p class="section-desc">Mọi công cụ mạnh mẽ nhất được tối ưu hóa trong một giao diện tối giản, hiện đại.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="user"></i></div>
+          <h3>Custom Profile</h3>
+          <p>Tùy biến Avatar, Bio, Background (Ảnh/Video), hiệu ứng ánh sáng và bố cục hoàn toàn theo cá tính của bạn.</p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="link"></i></div>
+          <h3>Unlimited Links</h3>
+          <p>Thêm không giới hạn các liên kết tới Mạng xã hội, Sản phẩm, YouTube, Discord, Telegram hay dự án cá nhân.</p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="music"></i></div>
+          <h3>Music Integration</h3>
+          <p>Tích hợp trình phát nhạc nền tự động hoặc tùy chọn, mang tới trải nghiệm âm thanh độc đáo cho khách ghé thăm.</p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="palette"></i></div>
+          <h3>Custom Themes</h3>
+          <p>Kho chủ đề đa dạng từ Glass, Midnight, Cyber đến Minimal và Aurora. Đổi giao diện chỉ với 1 click.</p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="shield-check"></i></div>
+          <h3>Verified Badge</h3>
+          <p>Khẳng định uy tín cá nhân và thương hiệu với các danh hiệu Verified, VIP, Creator hoặc Admin badge.</p>
+        </div>
+
+        <div class="glass-card feature-card">
+          <div class="feature-icon"><i data-lucide="bar-chart-3"></i></div>
+          <h3>Realtime Analytics</h3>
+          <p>Theo dõi chi tiết lượt ghé thăm (Views), số lượt click vào từng liên kết và vị trí địa lý của truy cập.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="showcase">
+      <div class="showcase-container">
+        <div>
+          <div class="badge" style="margin-bottom: 16px;">LIVE DEMO</div>
+          <h2 class="section-title" style="text-align: left;">Make it yours.<br>Not just a link page.</h2>
+          <p class="section-desc" style="text-align: left; margin-bottom: 30px;">
+            Trang Bio của bạn có thể làm được nhiều hơn thế. Thử nghiệm đổi Theme trực tiếp bên dưới để xem sự thay đổi realtime trên Profile Preview.
+          </p>
+
+          <div style="margin-bottom: 30px;">
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">CHỌN CHỦ ĐỀ TRẢI NGHIỆM:</p>
+            <div class="theme-switcher">
+              <button class="theme-btn active" onclick="ThemeSwitcher.set('glass', this)">Glass</button>
+              <button class="theme-btn" onclick="ThemeSwitcher.set('midnight', this)">Midnight</button>
+              <button class="theme-btn" onclick="ThemeSwitcher.set('cyber', this)">Cyber</button>
+              <button class="theme-btn" onclick="ThemeSwitcher.set('aurora', this)">Aurora</button>
+            </div>
+          </div>
+
+          <ul class="checklist">
+            <li><i data-lucide="check"></i> Custom Username</li>
+            <li><i data-lucide="check"></i> Avatar GIF/Static</li>
+            <li><i data-lucide="check"></i> Background Image/Video</li>
+            <li><i data-lucide="check"></i> Music Background</li>
+            <li><i data-lucide="check"></i> Verified Badge</li>
+            <li><i data-lucide="check"></i> QR Code Sharing</li>
+          </ul>
+        </div>
+
+        <div style="display: flex; justify-content: center;">
+          <div class="glass-card" style="padding: 24px; width: 100%; max-width: 380px;">
+            <p style="font-size: 0.8rem; color: var(--text-muted); text-align: center; margin-bottom: 16px;">
+              <i data-lucide="sparkles" style="width: 12px;"></i> Xem các tính năng hoạt động thực tế
+            </p>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--card-border); display: flex; align-items: center; gap: 12px;">
+                <i data-lucide="wrench" style="color: var(--accent-cyan)"></i>
+                <div>
+                  <div style="font-size: 0.85rem; font-weight: 600;">Utility Tools Included</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Tích hợp QR Tool, Text Tools trực tiếp trên Bio</div>
+                </div>
+              </div>
+              <div style="padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid var(--card-border); display: flex; align-items: center; gap: 12px;">
+                <i data-lucide="share-2" style="color: var(--accent-purple)"></i>
+                <div>
+                  <div style="font-size: 0.85rem; font-weight: 600;">Web Share API</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted);">Chia sẻ nhanh qua hệ thống native mobile</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div class="badge">SHARING</div>
+        <h2 class="section-title">One link. Everywhere.</h2>
+        <p class="section-desc">Chia sẻ hồ sơ của bạn một cách nhanh chóng thông qua URL độc quyền hoặc mã QR Code thông minh.</p>
+      </div>
+
+      <div class="share-box">
+        <div class="qr-preview" id="qr-container">
+          <img id="qr-image" src="" alt="QR Code Demo">
+        </div>
+
+        <div class="url-input-group">
+          <span id="demo-url">bio.digitalsmod.site/digitalsmod</span>
+          <button class="btn btn-primary" style="padding: 10px 20px; font-size: 0.85rem;" id="copy-btn" onclick="ShareTools.copyURL()">Copy</button>
+        </div>
+
+        <button class="btn btn-secondary" onclick="ShareTools.nativeShare()">
+          <i data-lucide="share" style="width: 16px;"></i> Share Profile
+        </button>
+      </div>
+    </section>
+
+    <section id="how-it-works">
+      <div class="section-header">
+        <div class="badge">WORKFLOW</div>
+        <h2 class="section-title">Create your Bio in seconds.</h2>
+        <p class="section-desc">Chỉ với 3 bước đơn giản để thiết lập diện mạo trực tuyến chuyên nghiệp.</p>
+      </div>
+
+      <div class="steps-container">
+        <div class="glass-card step-card">
+          <div class="step-num">01</div>
+          <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Create Account</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Đăng ký tài khoản DIGITALSMOD BIO hoàn toàn miễn phí chỉ trong vài giây.</p>
+        </div>
+        <div class="glass-card step-card">
+          <div class="step-num">02</div>
+          <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Customize</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Tải lên Avatar, điền Bio, gắn các đường link mạng xã hội và chọn Theme bạn thích.</p>
+        </div>
+        <div class="glass-card step-card">
+          <div class="step-num">03</div>
+          <h3 style="font-size: 1.2rem; margin-bottom: 8px;">Share World</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Gắn liên kết Bio của bạn lên TikTok, Instagram, Facebook và chia sẻ với mọi người.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-header">
+        <div class="badge">TARGET AUDIENCE</div>
+        <h2 class="section-title">Built for everyone.</h2>
+      </div>
+
+      <div class="grid-4">
+        <div class="glass-card feature-card">
+          <i data-lucide="video" style="color: var(--accent-cyan);"></i>
+          <h3>Creators</h3>
+          <p>Showcase toàn bộ nội dung, kênh mạng xã hội và sản phẩm sáng tạo của bạn.</p>
+        </div>
+        <div class="glass-card feature-card">
+          <i data-lucide="code" style="color: var(--accent-purple);"></i>
+          <h3>Developers</h3>
+          <p>Tập trung các dự án GitHub, công cụ lập trình và thông tin liên hệ chuyên nghiệp.</p>
+        </div>
+        <div class="glass-card feature-card">
+          <i data-lucide="gamepad-2" style="color: #f43f5e;"></i>
+          <h3>Gamers</h3>
+          <p>Chia sẻ kênh Discord, TikTok, YouTube và các thông tin profile gaming độc đáo.</p>
+        </div>
+        <div class="glass-card feature-card">
+          <i data-lucide="briefcase" style="color: #10b981;"></i>
+          <h3>Businesses</h3>
+          <p>Kết nối khách hàng tới các danh mục sản phẩm, dịch vụ và kênh hỗ trợ trực tiếp.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing">
+      <div class="section-header">
+        <div class="badge">PRICING</div>
+        <h2 class="section-title">Simple, transparent pricing.</h2>
+      </div>
+
+      <div class="pricing-grid">
+        <div class="glass-card pricing-card">
+          <div>
+            <h3 style="font-size: 1.4rem;">FREE</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Cho người dùng cá nhân bắt đầu</p>
+          </div>
+          <div class="price">0đ <span>/ trọn đời</span></div>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem; color: var(--text-muted);">
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-cyan);"></i> Custom Profile cơ bản</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-cyan);"></i> Unlimited Social Links</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-cyan);"></i> Basic Themes</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-cyan);"></i> QR Code Sharing</li>
+          </ul>
+          <button class="btn btn-secondary" onclick="Auth.register()">Bắt đầu miễn phí</button>
+        </div>
+
+        <div class="glass-card pricing-card popular">
+          <div>
+            <div class="badge" style="margin-bottom: 8px;">RECOMMENDED</div>
+            <h3 style="font-size: 1.4rem;">VIP</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Dành cho Creator & Thương hiệu</p>
+          </div>
+          <div class="price">VIP <span>/ Nâng cấp</span></div>
+          <ul style="list-style: none; display: flex; flex-direction: column; gap: 12px; font-size: 0.9rem; color: var(--text-muted);">
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-purple);"></i> Mọi tính năng của gói FREE</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-purple);"></i> Tùy chỉnh Theme Liquid Glass nâng cao</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-purple);"></i> Tích hợp Music Background Player</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-purple);"></i> Badge Verified / VIP độc quyền</li>
+            <li><i data-lucide="check" style="width: 16px; color: var(--accent-purple);"></i> Advanced Analytics chi tiết</li>
+          </ul>
+          <button class="btn btn-primary" onclick="Auth.upgradeVIP()">Nâng cấp VIP</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="section-header">
+        <div class="badge">FAQ</div>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+      </div>
+
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>DIGITALSMOD BIO là gì?</span>
+            <i data-lucide="chevron-down" style="width: 18px;"></i>
+          </button>
+          <div class="faq-answer">
+            DIGITALSMOD BIO là nền tảng khởi tạo trang Link-in-bio thế hệ mới, giúp bạn tổng hợp tất cả các liên kết mạng xã hội, dự án, tiện ích và âm nhạc cá nhân vào một trang web duy nhất với thiết kế hiện đại.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Tôi có thể dùng username riêng không?</span>
+            <i data-lucide="chevron-down" style="width: 18px;"></i>
+          </button>
+          <div class="faq-answer">
+            Có. Bạn hoàn toàn có thể tự chọn username theo mong muốn (ví dụ: bio.digitalsmod.site/tenban) ngay khi đăng ký tài khoản.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Profile có hỗ trợ Avatar GIF hoặc Background Video không?</span>
+            <i data-lucide="chevron-down" style="width: 18px;"></i>
+          </button>
+          <div class="faq-answer">
+            Có. DIGITALSMOD BIO hỗ trợ đầy đủ các định dạng ảnh tĩnh, ảnh GIF động và liên kết Video nền để trang cá nhân của bạn trở nên sống động nhất.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <button class="faq-question">
+            <span>Tôi có thể thêm nhạc nền vào profile không?</span>
+            <i data-lucide="chevron-down" style="width: 18px;"></i>
+          </button>
+          <div class="faq-answer">
+            Có. Tính năng Music Integration cho phép bạn thêm file âm thanh hoặc liên kết nhạc nền yêu thích kèm trình phát nhạc trực quan.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="cta-box">
+        <h2 class="section-title">Ready to build your identity?</h2>
+        <p class="section-desc" style="max-width: 500px;">Tạo ngay trang DIGITALSMOD BIO của bạn và đưa toàn bộ thương hiệu cá nhân trực tuyến vào một liên kết duy nhất.</p>
+        <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;">
+          <button class="btn btn-primary" onclick="Auth.register()">Create your Bio</button>
+          <a href="#showcase" class="btn btn-secondary">Explore Demo</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="footer-content">
+        <div>
+          <div class="brand-logo" style="margin-bottom: 8px;">
+            <span class="dot"></span> DIGITALSMOD BIO
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted);">Your identity. Your links. Your world.</p>
+        </div>
+
+        <ul class="footer-links">
+          <li><a href="#">Home</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#showcase">Demo</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+        </ul>
+
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          &copy; 2026 DIGITALSMOD. All rights reserved.
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    /* ------------------------------------------
+       BACKEND ABSTRACTION LAYER (Ready for Firebase/API)
+       ------------------------------------------ */
+    const Auth = {
+      login: () => {
+        alert("[Auth] Chuyển hướng tới trang Đăng nhập DIGITALSMOD...");
+        // window.location.href = "/login";
+      },
+      register: () => {
+        alert("[Auth] Chuyển hướng tới trang Đăng ký DIGITALSMOD BIO...");
+        // window.location.href = "/register";
+      },
+      upgradeVIP: () => {
+        alert("[Auth] Chuyển hướng tới cổng thanh toán nâng cấp VIP...");
+      }
+    };
+
+    const Profile = {
+      load: (username) => {
+        console.log(`[Profile] Fetching profile data for: ${username}`);
+      }
+    };
+
+    const Analytics = {
+      track: (event, data) => {
+        console.log(`[Analytics] Event tracked: ${event}`, data);
+      }
+    };
+
+    /* ------------------------------------------
+       THEME SWITCHER REALTIME
+       ------------------------------------------ */
+    const ThemeSwitcher = {
+      set: (themeName, btnElement) => {
+        document.body.setAttribute('data-preview-theme', themeName);
+        
+        // Active button state
+        document.querySelectorAll('.theme-btn').forEach(btn => btn.classList.remove('active'));
+        if (btnElement) btnElement.classList.add('active');
+
+        Analytics.track('theme_preview_changed', { theme: themeName });
+      }
+    };
+
+    /* ------------------------------------------
+       DEMO INTERACTIVE MOCKUP (CLICK TO ENTER & MUSIC)
+       ------------------------------------------ */
+    document.addEventListener('DOMContentLoaded', () => {
+      const demoOverlay = document.getElementById('demo-overlay');
+      const demoLinks = document.querySelectorAll('.mockup-link-card');
+      const demoMusicBtn = document.getElementById('demo-music-btn');
+      let isPlaying = false;
+
+      // Click To Enter Logic
+      if (demoOverlay) {
+        demoOverlay.addEventListener('click', () => {
+          demoOverlay.classList.add('hidden');
+          Analytics.track('demo_click_to_enter');
+
+          // Animate cards sequentially
+          demoLinks.forEach((card, index) => {
+            setTimeout(() => {
+              card.classList.add('show');
+            }, index * 150);
+          });
+        });
       }
 
-      // Tạo Blob URL mới giúp load code ổn định, tránh nhấp nháy
-      const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-      currentBlobUrl = URL.createObjectURL(blob);
-      frame.src = currentBlobUrl;
+      // Music Player Demo Logic
+      if (demoMusicBtn) {
+        demoMusicBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          isPlaying = !isPlaying;
+          if (isPlaying) {
+            demoMusicBtn.style.background = '#10b981';
+            demoMusicBtn.innerHTML = '<i data-lucide="pause" style="width: 14px;"></i>';
+            Analytics.track('demo_music_play');
+          } else {
+            demoMusicBtn.style.background = 'var(--prev-accent)';
+            demoMusicBtn.innerHTML = '<i data-lucide="play" style="width: 14px;"></i>';
+            Analytics.track('demo_music_pause');
+          }
+          lucide.createIcons();
+        });
+      }
 
-      // Cập nhật trạng thái Live thành công
-      statusDot.classList.add('live');
-    } else {
-      // Nếu Database trống
-      frame.style.display = 'none';
-      waiting.style.display = 'flex';
-      waitingText.textContent = 'Chưa có dữ liệu code. Vui lòng gõ nội dung từ Dashboard...';
-      if (loader) loader.style.display = 'none';
-      statusDot.classList.remove('live');
+      // Generate Initial QR Code
+      ShareTools.generateQR();
+    });
+
+    /* ------------------------------------------
+       SHARE & QR TOOLS
+       ------------------------------------------ */
+    const ShareTools = {
+      copyURL: () => {
+        const urlText = document.getElementById('demo-url').innerText;
+        navigator.clipboard.writeText(`https://${urlText}`).then(() => {
+          const copyBtn = document.getElementById('copy-btn');
+          copyBtn.innerText = 'Copied!';
+          copyBtn.style.background = '#10b981';
+          copyBtn.style.color = '#fff';
+
+          setTimeout(() => {
+            copyBtn.innerText = 'Copy';
+            copyBtn.style.background = '#ffffff';
+            copyBtn.style.color = '#000000';
+          }, 2000);
+
+          Analytics.track('share_url_copied');
+        });
+      },
+
+      nativeShare: () => {
+        const urlText = document.getElementById('demo-url').innerText;
+        if (navigator.share) {
+          navigator.share({
+            title: 'DIGITALSMOD BIO Profile',
+            text: 'Check out my profile on DIGITALSMOD BIO!',
+            url: `https://${urlText}`
+          }).catch(() => {});
+        } else {
+          ShareTools.copyURL();
+        }
+      },
+
+      generateQR: () => {
+        const urlText = document.getElementById('demo-url').innerText;
+        const qrImg = document.getElementById('qr-image');
+        if (qrImg) {
+          qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://${urlText}&color=030712`;
+        }
+      }
+    };
+
+    /* ------------------------------------------
+       FAQ ACCORDION TOGGLE
+       ------------------------------------------ */
+    document.querySelectorAll('.faq-question').forEach(button => {
+      button.addEventListener('click', () => {
+        const faqItem = button.parentElement;
+        const isActive = faqItem.classList.contains('active');
+
+        // Close all items
+        document.querySelectorAll('.faq-item').forEach(item => item.classList.remove('active'));
+
+        // Toggle current
+        if (!isActive) {
+          faqItem.classList.add('active');
+        }
+      });
+    });
+
+    /* ------------------------------------------
+       MOBILE MENU TOGGLE
+       ------------------------------------------ */
+    const mobileToggleBtn = document.getElementById('mobile-toggle-btn');
+    const mobileCloseBtn = document.getElementById('mobile-close-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+
+    if (mobileToggleBtn && mobileMenu) {
+      mobileToggleBtn.addEventListener('click', () => {
+        mobileMenu.classList.add('active');
+      });
     }
-  }, (err) => {
-    // Xử lý khi gặp lỗi kết nối
-    frame.style.display = 'none';
-    waiting.style.display = 'flex';
-    waitingText.textContent = 'Lỗi kết nối Firebase: ' + err.message;
-    if (loader) loader.style.display = 'none';
-    statusDot.classList.remove('live');
-  });
 
-  // Toggle ẩn/hiện nút status dot khi bấm vào
-  statusDot.addEventListener('click', () => {
-    statusDot.style.opacity = statusDot.style.opacity === '0.1' ? '1' : '0.1';
-  });
-</script>
+    if (mobileCloseBtn && mobileMenu) {
+      mobileCloseBtn.addEventListener('click', () => {
+        mobileMenu.classList.remove('active');
+      });
+    }
+
+    document.querySelectorAll('.mobile-link').forEach(link => {
+      link.addEventListener('click', () => {
+        mobileMenu.classList.remove('active');
+      });
+    });
+  </script>
 </body>
 </html>
