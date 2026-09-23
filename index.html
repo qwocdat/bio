@@ -59,7 +59,7 @@
             height: 100%;
             background: linear-gradient(90deg, var(--primary), #8b5cf6);
             border-radius: 6px;
-            transition: width 0.2s ease-in-out;
+            transition: width 0.25s ease-in-out;
         }
 
         .progress-status-text {
@@ -67,6 +67,22 @@
             justify-content: space-between;
             font-size: 0.78rem;
             color: var(--text-muted);
+        }
+
+        .success-url-box {
+            margin-top: 12px;
+            padding: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .success-url-box a {
+            color: var(--primary);
+            font-weight: 600;
+            text-decoration: none;
+            word-break: break-all;
         }
     </style>
 </head>
@@ -156,6 +172,12 @@
                         <span id="publishPercent">0%</span>
                     </div>
                 </div>
+
+                <!-- KHU VỰC HIỂN THỊ URL THÀNH CÔNG -->
+                <div id="successUrlBox" class="success-url-box hidden">
+                    <p style="font-size:0.8rem; color:#10b981; margin-bottom:6px;"><i class="fa-solid fa-circle-check"></i> Xuất bản thành công!</p>
+                    <a id="publishedBioLink" href="#" target="_blank">https://bio.digitalsmod.site/</a>
+                </div>
             </div>
         </div>
 
@@ -181,6 +203,29 @@
         let currentUserData = { username: "", name: "", avatar: "", bio: "", links: [] };
         let currentUid = null;
         let isLoginMode = true;
+
+        // HELPER 1: TIMEOUT CHỐNG HỆ THỐNG BỊ KẸT MÃI Ở CÁC REQUEST
+        function withTimeout(promise, ms = 3500) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("FIREBASE_TIMEOUT")), ms))
+            ]);
+        }
+
+        // HELPER 2: KIỂM TRA USERNAME TRÊN FIREBASE AN TOÀN
+        async function checkUsernameAvailability(username) {
+            const usernameRef = ref(db, `usernames/${username}`);
+            const snapshot = await withTimeout(get(usernameRef), 3500);
+            
+            if (!snapshot.exists()) {
+                return { available: true, data: null };
+            }
+            const data = snapshot.val();
+            if (data && data.uid === currentUid) {
+                return { available: true, data };
+            }
+            return { available: false, data };
+        }
 
         function showToast(msg) {
             const container = document.getElementById('toastContainer');
@@ -213,14 +258,14 @@
             }
 
             try {
-                const usernameSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
+                const usernameSnapshot = await withTimeout(get(child(ref(db), `usernames/${validated.username}`)), 3500);
                 if (!usernameSnapshot.exists()) {
                     document.getElementById('publicProfileRender').innerHTML = `<h3>Không tìm thấy người dùng</h3>`;
                     return;
                 }
 
                 const uid = usernameSnapshot.val().uid;
-                const profileSnapshot = await get(child(ref(db), `profiles/${uid}`));
+                const profileSnapshot = await withTimeout(get(child(ref(db), `profiles/${uid}`)), 3500);
                 
                 if (profileSnapshot.exists()) {
                     const data = profileSnapshot.val();
@@ -251,8 +296,8 @@
                     document.title = `${safeName} (@${validated.username}) - DIGITALSMOD BIO`;
                 }
             } catch (err) {
-                console.error(err);
-                document.getElementById('publicProfileRender').innerHTML = `<h3>Lỗi khi tải dữ liệu</h3>`;
+                console.error("Lỗi đọc Public Page:", err);
+                document.getElementById('publicProfileRender').innerHTML = `<h3>Lỗi khi tải dữ liệu public profile</h3>`;
             }
         }
 
@@ -315,7 +360,7 @@
 
         async function loadDashboardData(uid) {
             try {
-                const snapshot = await get(child(ref(db), `profiles/${uid}`));
+                const snapshot = await withTimeout(get(child(ref(db), `profiles/${uid}`)), 3500);
                 if (snapshot.exists()) {
                     currentUserData = snapshot.val();
                     if (!currentUserData.links) currentUserData.links = [];
@@ -333,7 +378,11 @@
                 updateLivePreview();
             } catch (err) {
                 console.error("Lỗi đọc Profile:", err);
-                showToast("Lỗi kết nối cơ sở dữ liệu");
+                if (err?.code === 'PERMISSION_DENIED' || err?.code === 'permission-denied') {
+                    showToast("Firebase Rules đang chặn quyền đọc Profile!");
+                } else {
+                    showToast("Lỗi kết nối cơ sở dữ liệu!");
+                }
             }
         }
 
@@ -397,7 +446,7 @@
             `;
         }
 
-        // HÀM HỖ TRỢ CẬP NHẬT TIẾN TRÌNH TẢI THỰC TẾ
+        // HÀM CẬP NHẬT TIẾN TRÌNH TẢI THỰC TẾ
         function updatePublishProgress(percent, stepMessage) {
             const progressBox = document.getElementById('publishProgressBox');
             const progressBar = document.getElementById('publishProgressBar');
@@ -410,18 +459,18 @@
             statusStep.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stepMessage}`;
         }
 
-        // XUẤT BẢN DỮ LIỆU ĐỒNG BỘ VỚI TIẾN TRÌNH THỰC TẾ (REAL-TIME PROGRESS)
+        // XUẤT BẢN DỮ LIỆU ĐỒNG BỘ TIẾN TRÌNH THỰC TẾ (CHỐNG KẸT 30%)
         async function saveProfile() {
             if (!currentUid) {
                 showToast("Chưa xác thực tài khoản! Vui lòng đăng nhập lại.");
                 return;
             }
 
-            const newUsername = document.getElementById('editUsername').value;
+            const rawUsername = document.getElementById('editUsername').value;
             
-            // Step 1: Kiểm tra định dạng đầu vào (10%)
-            updatePublishProgress(10, "Kiểm tra định dạng Username...");
-            const validated = Security.validateUsername(newUsername);
+            // Step 1: Kiểm tra Username (10%)
+            updatePublishProgress(10, "Kiểm tra Username...");
+            const validated = Security.validateUsername(rawUsername);
 
             if (!validated.valid) {
                 document.getElementById('publishProgressBox').classList.add('hidden');
@@ -429,52 +478,82 @@
                 return;
             }
 
+            // Chuẩn hóa Username dạng chữ thường
+            const newUsername = validated.username.toLowerCase().trim();
+            const oldUsername = currentUserData.username ? currentUserData.username.toLowerCase().trim() : "";
+
             const saveBtn = document.getElementById('saveProfileBtn');
             saveBtn.disabled = true;
             saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
 
             try {
-                // Step 2: Kiểm tra sự tồn tại của Username trên Database (30%)
-                updatePublishProgress(30, "Kiểm tra tính khả dụng của URL...");
-                if (validated.username !== currentUserData.username) {
-                    const checkSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
-                    if (checkSnapshot.exists() && checkSnapshot.val().uid !== currentUid) {
-                        document.getElementById('publishProgressBox').classList.add('hidden');
-                        showToast("Username này đã có người sử dụng!");
-                        saveBtn.disabled = false;
-                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
-                        return;
-                    }
-
-                    // Step 3: Xóa mapping username cũ nếu người dùng đổi tên miền mới (60%)
-                    if (currentUserData.username) {
-                        updatePublishProgress(60, "Đang cập nhật lại tên miền cũ...");
-                        await remove(ref(db, `usernames/${currentUserData.username}`));
-                    }
-
-                    // Step 4: Tạo mapping tên miền phụ mới (80%)
-                    updatePublishProgress(80, "Tạo liên kết URL Bio mới...");
-                    await set(ref(db, `usernames/${validated.username}`), { uid: currentUid });
-                    currentUserData.username = validated.username;
+                // Step 2: Kiểm tra tính khả dụng (30%) - Có chống kẹt
+                updatePublishProgress(30, "Kiểm tra tính khả dụng...");
+                
+                let checkResult = { available: true };
+                try {
+                    checkResult = await checkUsernameAvailability(newUsername);
+                } catch (checkErr) {
+                    console.warn("Lỗi kiểm tra trùng tên miền, chuyển sang ghi trực tiếp:", checkErr);
                 }
 
-                // Step 5: Đưa toàn bộ cấu hình Profile lên database thật (95%)
-                updatePublishProgress(95, "Lưu cấu hình hồ sơ cá nhân...");
-                await set(ref(db, `profiles/${currentUid}`), currentUserData);
+                if (!checkResult.available) {
+                    document.getElementById('publishProgressBox').classList.add('hidden');
+                    showToast("Username này đã được sử dụng bởi tài khoản khác!");
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
+                    return;
+                }
 
-                // Step 6: Đạt 100% Hoàn tất
+                // Step 3: Tạo URL Bio mới (55%)
+                updatePublishProgress(55, "Tạo URL Bio...");
+                await withTimeout(set(ref(db, `usernames/${newUsername}`), { uid: currentUid }), 3500);
+
+                // Step 4: Lưu hồ sơ lên CSDL (75%)
+                updatePublishProgress(75, "Lưu hồ sơ...");
+                currentUserData.username = newUsername;
+                await withTimeout(set(ref(db, `profiles/${currentUid}`), currentUserData), 3500);
+
+                // Step 5: Đồng bộ dữ liệu & Rollback Safe dọn dẹp Username cũ (95%)
+                updatePublishProgress(95, "Đồng bộ dữ liệu...");
+                if (oldUsername && oldUsername !== newUsername) {
+                    try {
+                        await withTimeout(remove(ref(db, `usernames/${oldUsername}`)), 3500);
+                    } catch (cleanupErr) {
+                        console.warn("Không thể dọn dẹp Username cũ:", cleanupErr);
+                    }
+                }
+
+                // Step 6: 100% Xuất bản thành công!
                 updatePublishProgress(100, "Xuất bản thành công!");
 
                 setTimeout(() => {
                     document.getElementById('publishProgressBox').classList.add('hidden');
                     checkUsernameUIState();
-                    showToast("Đã lưu và xuất bản Bio Link thành công!");
-                }, 500);
+                    
+                    const fullBioUrl = `${window.location.origin}/${newUsername}`;
+                    const successBox = document.getElementById('successUrlBox');
+                    const successLink = document.getElementById('publishedBioLink');
+                    
+                    successLink.href = fullBioUrl;
+                    successLink.innerText = fullBioUrl;
+                    successBox.classList.remove('hidden');
 
-            } catch (err) {
-                console.error("Lỗi Firebase Save:", err);
+                    showToast("Đã xuất bản Bio Link thành công!");
+                }, 400);
+
+            } catch (error) {
+                console.error("Firebase saveProfile error:", error);
                 document.getElementById('publishProgressBox').classList.add('hidden');
-                showToast("Lỗi lưu dữ liệu: " + (err.message || err));
+
+                if (error?.code === 'PERMISSION_DENIED' || error?.code === 'permission-denied') {
+                    showToast("Firebase Rules đang chặn quyền đọc/ghi Username!");
+                    console.error("Firebase permission denied:", error);
+                } else if (error?.message === "FIREBASE_TIMEOUT") {
+                    showToast("Kết nối Firebase bị quá thời gian (Timeout). Vui lòng kiểm tra mạng!");
+                } else {
+                    showToast("Lỗi xuất bản: " + (error.message || "Không thể lưu dữ liệu"));
+                }
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
