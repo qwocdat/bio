@@ -11,6 +11,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: #0f172a;
     color: #e2e8f0;
+    overflow: hidden;
   }
   .topbar {
     display: flex;
@@ -30,9 +31,53 @@
   }
   .status.live { color: #22c55e; }
   .status.error { color: #ef4444; }
+
+  /* Toolbar tiện ích */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #0f172a;
+    border-bottom: 1px solid #1e293b;
+    flex-wrap: wrap;
+  }
+  .btn {
+    background: #334155;
+    color: #f8fafc;
+    border: 1px solid #475569;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover {
+    background: #475569;
+    border-color: #64748b;
+  }
+  .btn-primary {
+    background: #2563eb;
+    border-color: #3b82f6;
+  }
+  .btn-primary:hover {
+    background: #1d4ed8;
+  }
+  .btn-warning {
+    background: #d97706;
+    border-color: #f59e0b;
+  }
+  .btn-warning:hover {
+    background: #b45309;
+  }
+
   #editor {
     width: 100%;
-    height: calc(100vh - 46px);
+    height: calc(100vh - 90px);
     background: #0f172a;
     color: #e2e8f0;
     border: none;
@@ -51,6 +96,15 @@
   <div class="topbar">
     <h1>🎛️ dash.html — gõ mã HTML, index.html cập nhật realtime cho MỌI người</h1>
     <span class="status" id="status">● đang kết nối...</span>
+  </div>
+
+  <!-- Thanh tiện ích nhanh -->
+  <div class="toolbar">
+    <button class="btn btn-primary" id="btn-send">🚀 Gửi Code Ngay</button>
+    <button class="btn btn-warning" id="btn-maintenance">🛠️ Thêm Thông báo Bảo trì</button>
+    <button class="btn" id="btn-format">✨ Căn chỉnh Code</button>
+    <button class="btn" id="btn-copy">📋 Copy Code</button>
+    <button class="btn" id="btn-clear">🧹 Xóa sạch</button>
   </div>
 
   <textarea id="editor" spellcheck="false">&lt;!DOCTYPE html&gt;
@@ -152,6 +206,109 @@
     setTimeout(() => {
       if (statusEl.textContent.includes('đang kết nối')) pushUpdate();
     }, 1500);
+  });
+
+  /* ==========================================
+     CÁC TÍNH NĂNG TIỆN ÍCH MỚI
+     ========================================== */
+
+  // 1. Nút Gửi Code Ngay
+  document.getElementById('btn-send').addEventListener('click', () => {
+    clearTimeout(debounceTimer);
+    pushUpdate();
+  });
+
+  // 2. Nút Thêm Mẫu Bảo Trì Website
+  document.getElementById('btn-maintenance').addEventListener('click', () => {
+    if (confirm('Bạn có chắc chắn muốn chèn giao diện Thông báo Bảo trì? Code hiện tại sẽ bị thay thế.')) {
+      const maintenanceCode = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hệ Thống Đang Bảo Trì</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, -apple-system, sans-serif;
+    background: #030712;
+    color: #f3f4f6;
+    text-align: center;
+    padding: 20px;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 40px 30px;
+    border-radius: 24px;
+    max-width: 450px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+  .icon { font-size: 3rem; margin-bottom: 16px; }
+  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; color: #f59e0b; }
+  p { font-size: 0.95rem; color: #9ca3af; line-height: 1.6; margin-bottom: 24px; }
+  .badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🛠️</div>
+    <span class="badge">SYSTEM MAINTENANCE</span>
+    <h1 style="margin-top: 12px;">Đang Bảo Trì Hệ Thống</h1>
+    <p>Website đang được nâng cấp để mang lại trải nghiệm tốt nhất. Vui lòng quay lại sau ít phút nữa!</p>
+  </div>
+</body>
+</html>`;
+      editor.value = maintenanceCode;
+      pushUpdate();
+    }
+  });
+
+  // 3. Nút Định Dạng / Căn Chỉnh Code Đơn Giản
+  document.getElementById('btn-format').addEventListener('click', () => {
+    let lines = editor.value.split('\n');
+    let indent = 0;
+    let formatted = lines.map(line => {
+      let trimmed = line.trim();
+      if (!trimmed) return '';
+      if (trimmed.startsWith('</') || trimmed.startsWith('}')) indent = Math.max(0, indent - 1);
+      let padded = '  '.repeat(indent) + trimmed;
+      if ((trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('</')) || trimmed.endsWith('{')) {
+        indent++;
+      }
+      return padded;
+    }).join('\n');
+    editor.value = formatted;
+    pushUpdate();
+  });
+
+  // 4. Nút Copy Code
+  document.getElementById('btn-copy').addEventListener('click', () => {
+    navigator.clipboard.writeText(editor.value).then(() => {
+      alert('Đã copy toàn bộ code vào bộ nhớ tạm!');
+    });
+  });
+
+  // 5. Nút Xóa Sạch
+  document.getElementById('btn-clear').addEventListener('click', () => {
+    if (confirm('Bạn có chắc chắn muốn xóa toàn bộ nội dung?')) {
+      editor.value = '';
+      pushUpdate();
+    }
   });
 </script>
 </body>
