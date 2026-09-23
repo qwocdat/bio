@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đếm Hàng Bằng Âm Thanh</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f9;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            font-size: 24px;
+        }
+        .count-box {
+            font-size: 80px;
+            font-weight: bold;
+            color: #007bff;
+            margin: 20px 0;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .btn-start { background-color: #28a745; color: white; }
+        .btn-reset { background-color: #dc3545; color: white; }
+        .sensitivity {
+            margin-top: 20px;
+            text-align: left;
+        }
+        input[type=range] {
+            width: 100%;
+        }
+        .status {
+            margin-top: 15px;
+            font-weight: bold;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ĐẾM SỐ LƯỢNG HÀNG</h1>
+    <div class="count-box" id="counter">0</div>
+
+    <button class="btn-start" onclick="toggleMicrophone()" id="startBtn">Bắt đầu lắng nghe</button>
+    <button class="btn-reset" onclick="resetCount()">Đặt lại (Reset)</button>
+
+    <div class="sensitivity">
+        <label for="threshold">Ngưỡng âm thanh phát hiện (Tiếng khoan): <span id="thresholdVal">30</span></label>
+        <input type="range" id="threshold" min="5" max="100" value="30">
+    </div>
+
+    <div class="status" id="status">Trạng thái: Chưa bật micro</div>
+</div>
+
+<script>
+    let count = 0;
+    let isListening = false;
+    let audioContext;
+    let analyser;
+    let microphone;
+    let javascriptNode;
+    let isCoolingDown = false; // Chống đếm trùng cho 1 tiếng khoan kéo dài
+
+    const counterEl = document.getElementById('counter');
+    const statusEl = document.getElementById('status');
+    const startBtn = document.getElementById('startBtn');
+    const thresholdInput = document.getElementById('threshold');
+    const thresholdVal = document.getElementById('thresholdVal');
+
+    thresholdInput.addEventListener('input', () => {
+        thresholdVal.innerText = thresholdInput.value;
+    });
+
+    function resetCount() {
+        count = 0;
+        counterEl.innerText = count;
+    }
+
+    async function toggleMicrophone() {
+        if (!isListening) {
+            try {
+                // Yêu cầu quyền truy cập Micro
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(stream);
+                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+                analyser.smoothingTimeConstant = 0.8;
+                analyser.fftSize = 1024;
+
+                microphone.connect(analyser);
+                analyser.connect(javascriptNode);
+                javascriptNode.connect(audioContext.destination);
+
+                javascriptNode.onaudioprocess = function() {
+                    const array = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(array);
+                    let values = 0;
+
+                    for (let i = 0; i < array.length; i++) {
+                        values += array[i];
+                    }
+
+                    const average = values / array.length; // Tính độ lớn âm thanh trung bình
+                    const threshold = parseInt(thresholdInput.value);
+
+                    // Nếu âm thanh vượt ngưỡng và không trong thời gian chờ (cooldown)
+                    if (average > threshold && !isCoolingDown) {
+                        count++;
+                        counterEl.innerText = count;
+                        
+                        // Khóa đếm tạm thời 1.5 giây để tránh 1 tiếng khoan dài bị đếm nhiều lần
+                        isCoolingDown = true;
+                        statusEl.innerText = "Trạng thái: Đã ghi nhận (+1)";
+                        statusEl.style.color = "green";
+
+                        setTimeout(() => {
+                            isCoolingDown = false;
+                            statusEl.innerText = "Trạng thái: Đang lắng nghe...";
+                            statusEl.style.color = "#007bff";
+                        }, 1500); // 1500ms = 1.5 giây (bạn có thể chỉnh lại thời gian này)
+                    }
+                };
+
+                isListening = true;
+                startBtn.innerText = "Dừng lắng nghe";
+                startBtn.style.backgroundColor = "#ffc107";
+                statusEl.innerText = "Trạng thái: Đang lắng nghe...";
+                statusEl.style.color = "#007bff";
+
+            } catch (err) {
+                alert("Không thể truy cập Micro. Vui lòng cấp quyền sử dụng Micro cho trình duyệt!");
+                console.error(err);
+            }
+        } else {
+            // Dừng micro
+            if (audioContext) audioContext.close();
+            isListening = false;
+            startBtn.innerText = "Bắt đầu lắng nghe";
+            startBtn.style.backgroundColor = "#28a745";
+            statusEl.innerText = "Trạng thái: Đã dừng";
+            statusEl.style.color = "#666";
+        }
+    }
+</script>
+
+</body>
+</html>
