@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Đếm Hàng Bằng Âm Thanh</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,28 +12,43 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex; flex-direction: column;
             justify-content: space-between; align-items: center;
-            height: 100vh; padding: 20px 10px; overflow: hidden; user-select: none;
+            height: 100vh; padding: 20px 10px; overflow: hidden; 
+            user-select: none; -webkit-user-select: none;
         }
-        .header-title { font-size: 14px; letter-spacing: 2px; color: #666; text-transform: uppercase; margin-top: 10px; }
+        .header-title { 
+            font-size: 14px; letter-spacing: 2px; color: #666; 
+            text-transform: uppercase; margin-top: 10px; 
+        }
         .main-counter {
             font-size: 35vw; font-weight: 900; color: #00ff66; line-height: 1;
             text-shadow: 0 0 30px rgba(0, 255, 102, 0.3); flex-grow: 1;
             display: flex; align-items: center; justify-content: center;
+            transition: color 0.2s ease;
         }
         .controls-panel {
             width: 100%; max-width: 400px; background-color: #111111;
             border: 1px solid #222222; border-radius: 16px; padding: 15px 20px;
             display: flex; flex-direction: column; gap: 12px;
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
         }
-        .status-text { font-size: 13px; color: #888; text-align: center; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+        .status-text { 
+            font-size: 13px; color: #888; text-align: center; 
+            min-height: 36px; display: flex; align-items: center; justify-content: center; 
+            line-height: 1.4; word-break: break-word;
+        }
         .btn-group { display: flex; gap: 10px; }
-        button { flex: 1; padding: 14px; font-size: 15px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
+        button { 
+            flex: 1; padding: 14px; font-size: 15px; font-weight: bold; 
+            border: none; border-radius: 10px; cursor: pointer; 
+            transition: all 0.2s ease;
+        }
+        button:active { transform: scale(0.97); }
         .btn-start { background-color: #007bff; color: #ffffff; }
-        .btn-start.listening { background-color: #ff9800; }
+        .btn-start.listening { background-color: #ff9800; color: #ffffff; }
         .btn-reset { background-color: #222222; color: #ff4444; border: 1px solid #333; }
-        .slider-box { display: flex; flex-direction: column; gap: 6px; }
+        .slider-box { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
         .slider-label { display: flex; justify-content: space-between; font-size: 12px; color: #aaa; }
-        input[type=range] { width: 100%; accent-color: #00ff66; cursor: pointer; }
+        input[type=range] { width: 100%; accent-color: #00ff66; cursor: pointer; height: 20px; }
     </style>
 </head>
 <body>
@@ -56,103 +71,142 @@
         </div>
     </div>
 
-<script>
-    let count = 0;
-    let isListening = false;
-    let audioContext;
-    let analyser;
-    let microphone;
-    let javascriptNode;
-    let isCoolingDown = false;
+    <script>
+        let count = 0;
+        let isListening = false;
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let javascriptNode = null;
+        let isCoolingDown = false;
 
-    const counterEl = document.getElementById('counter');
-    const statusEl = document.getElementById('status');
-    const startBtn = document.getElementById('startBtn');
-    const thresholdInput = document.getElementById('threshold');
-    const thresholdVal = document.getElementById('thresholdVal');
+        const counterEl = document.getElementById('counter');
+        const statusEl = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const thresholdInput = document.getElementById('threshold');
+        const thresholdVal = document.getElementById('thresholdVal');
 
-    thresholdInput.addEventListener('input', () => { thresholdVal.innerText = thresholdInput.value; });
+        // Cập nhật số hiển thị khi kéo thanh trượt
+        thresholdInput.addEventListener('input', () => { 
+            thresholdVal.innerText = thresholdInput.value; 
+        });
 
-    function resetCount() { count = 0; counterEl.innerText = count; }
+        // Hàm reset số lượng
+        function resetCount() { 
+            count = 0; 
+            counterEl.innerText = count; 
+        }
 
-    async function toggleMicrophone() {
-        if (!isListening) {
-            try {
-                statusEl.innerText = "Đang xin quyền Micro...";
-                statusEl.style.color = "#ffc107";
-
-                // Yêu cầu quyền Micro trực tiếp
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
-                });
-
-                // Khởi tạo AudioContext SAU KHI đã có quyền
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                audioContext = new AudioCtx();
-                
-                if (audioContext.state === 'suspended') {
-                    await audioContext.resume();
+        // Hàm bật/tắt Micro
+        async function toggleMicrophone() {
+            if (!isListening) {
+                // 1. Kiểm tra xem trình duyệt có hỗ trợ API Micro không
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    statusEl.innerText = "❌ Trình duyệt không hỗ trợ Micro!";
+                    statusEl.style.color = "#ff4444";
+                    return;
                 }
 
-                analyser = audioContext.createAnalyser();
-                microphone = audioContext.createMediaStreamSource(stream);
-                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+                try {
+                    statusEl.innerText = "Đang xin quyền Micro...";
+                    statusEl.style.color = "#ffc107";
 
-                analyser.smoothingTimeConstant = 0.8;
-                analyser.fftSize = 1024;
+                    // 2. Yêu cầu quyền Micro (Đã lược bỏ các cấu hình khắt khe gây lỗi trên mobile)
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-                microphone.connect(analyser);
-                analyser.connect(javascriptNode);
-                javascriptNode.connect(audioContext.destination);
-
-                javascriptNode.onaudioprocess = function() {
-                    const array = new Uint8Array(analyser.frequencyBinCount);
-                    analyser.getByteFrequencyData(array);
-                    let values = 0;
-
-                    for (let i = 0; i < array.length; i++) { values += array[i]; }
-
-                    const average = values / array.length;
-                    const threshold = parseInt(thresholdInput.value);
-
-                    if (average > threshold && !isCoolingDown) {
-                        count++;
-                        counterEl.innerText = count;
-                        counterEl.style.color = "#ffffff";
-                        setTimeout(() => counterEl.style.color = "#00ff66", 200);
-
-                        isCoolingDown = true;
-                        statusEl.innerText = "🟢 ĐÃ GHI NHẬN (+1)";
-                        statusEl.style.color = "#00ff66";
-
-                        setTimeout(() => {
-                            isCoolingDown = false;
-                            statusEl.innerText = "🎙️ Đang lắng nghe tiếng khoan...";
-                            statusEl.style.color = "#888";
-                        }, 1500);
+                    // 3. Khởi tạo AudioContext SAU KHI đã có quyền
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new AudioCtx();
+                    
+                    // Fix lỗi AudioContext bị treo trên một số trình duyệt mobile
+                    if (audioContext.state === 'suspended') {
+                        await audioContext.resume();
                     }
-                };
 
-                isListening = true;
-                startBtn.innerText = "DỪNG LẮNG NGHE";
-                startBtn.classList.add("listening");
-                statusEl.innerText = "🎙️ Đang lắng nghe tiếng khoan...";
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+                    analyser.smoothingTimeConstant = 0.8;
+                    analyser.fftSize = 1024;
+
+                    microphone.connect(analyser);
+                    analyser.connect(javascriptNode);
+                    javascriptNode.connect(audioContext.destination);
+
+                    // 4. Xử lý âm thanh đầu vào
+                    javascriptNode.onaudioprocess = function() {
+                        if (!analyser) return;
+                        
+                        const array = new Uint8Array(analyser.frequencyBinCount);
+                        analyser.getByteFrequencyData(array);
+                        let values = 0;
+
+                        for (let i = 0; i < array.length; i++) { values += array[i]; }
+
+                        const average = values / array.length;
+                        const threshold = parseInt(thresholdInput.value);
+
+                        // Nếu âm thanh vượt ngưỡng và không trong thời gian chờ
+                        if (average > threshold && !isCoolingDown) {
+                            count++;
+                            counterEl.innerText = count;
+                            
+                            // Hiệu ứng nháy trắng
+                            counterEl.style.color = "#ffffff";
+                            setTimeout(() => counterEl.style.color = "#00ff66", 200);
+
+                            isCoolingDown = true;
+                            statusEl.innerText = "🟢 ĐÃ GHI NHẬN (+1)";
+                            statusEl.style.color = "#00ff66";
+
+                            // Chờ 1.5s trước khi nhận diện tiếng tiếp theo
+                            setTimeout(() => {
+                                isCoolingDown = false;
+                                statusEl.innerText = "🎙️ Đang lắng nghe tiếng khoan...";
+                                statusEl.style.color = "#888";
+                            }, 1500);
+                        }
+                    };
+
+                    // Cập nhật trạng thái UI
+                    isListening = true;
+                    startBtn.innerText = "DỪNG LẮNG NGHE";
+                    startBtn.classList.add("listening");
+                    statusEl.innerText = "🎙️ Đang lắng nghe tiếng khoan...";
+                    statusEl.style.color = "#888";
+
+                } catch (err) {
+                    console.error("Lỗi Micro:", err);
+                    
+                    // 5. Bắt lỗi chi tiết để người dùng biết đường sửa
+                    let errorMsg = "❌ Lỗi không xác định!";
+                    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                        errorMsg = "❌ Quyền bị từ chối! Hãy cấp quyền Micro trên trình duyệt.";
+                    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                        errorMsg = "❌ Không tìm thấy Micro trên thiết bị!";
+                    } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                        errorMsg = "❌ Micro đang bị ứng dụng khác chiếm dụng!";
+                    } else if (err.message) {
+                        errorMsg = "❌ Lỗi: " + err.message;
+                    }
+                    
+                    statusEl.innerText = errorMsg;
+                    statusEl.style.color = "#ff4444";
+                }
+            } else {
+                // Tắt Micro và giải phóng tài nguyên
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+                isListening = false;
+                startBtn.innerText = "BẬT MICRO";
+                startBtn.classList.remove("listening");
+                statusEl.innerText = "Đã dừng.";
                 statusEl.style.color = "#888";
-
-            } catch (err) {
-                console.error(err);
-                statusEl.innerText = "❌ Lỗi: Vui lòng reset quyền trên Chrome!";
-                statusEl.style.color = "#ff4444";
             }
-        } else {
-            if (audioContext) audioContext.close();
-            isListening = false;
-            startBtn.innerText = "BẬT MICRO";
-            startBtn.classList.remove("listening");
-            statusEl.innerText = "Đã dừng.";
-            statusEl.style.color = "#888";
         }
-    }
-</script>
+    </script>
 </body>
 </html>
