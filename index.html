@@ -34,6 +34,40 @@
             background-color: var(--primary) !important;
             color: #000 !important;
         }
+
+        /* THANH TRẠNG THÁI TIẾN ĐỘ THỰC TẾ (PROGRESS BAR) */
+        .publish-progress-container {
+            margin-top: 15px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: left;
+        }
+
+        .progress-bar-bg {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #8b5cf6);
+            border-radius: 6px;
+            transition: width 0.2s ease-in-out;
+        }
+
+        .progress-status-text {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
     </style>
 </head>
 <body>
@@ -86,7 +120,7 @@
                     </div>
                 </div>
 
-                <!-- BƯỚC 2: CÁC PHẦN CHỈNH SỬA WEB CHỈ HIỆN SAU KHHI ĐÃ CÓ USERNAME -->
+                <!-- BƯỚC 2: CÁC PHẦN CHỈNH SỬA WEB CHỈ HIỆN SAU KHI ĐÃ CÓ USERNAME -->
                 <div id="extendedEditorSections" class="hidden">
                     <div class="editor-section">
                         <h3>Thông tin Cá nhân</h3>
@@ -111,6 +145,17 @@
                 </div>
 
                 <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 10px;"><i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)</button>
+
+                <!-- KHU VỰC HIỂN THỊ TIẾN TRÌNH TẢI THỰC TẾ -->
+                <div id="publishProgressBox" class="publish-progress-container hidden">
+                    <div class="progress-bar-bg">
+                        <div id="publishProgressBar" class="progress-bar-fill"></div>
+                    </div>
+                    <div class="progress-status-text">
+                        <span id="publishStatusStep"><i class="fa-solid fa-spinner fa-spin"></i> Đang khởi tạo...</span>
+                        <span id="publishPercent">0%</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -352,6 +397,20 @@
             `;
         }
 
+        // HÀM HỖ TRỢ CẬP NHẬT TIẾN TRÌNH TẢI THỰC TẾ
+        function updatePublishProgress(percent, stepMessage) {
+            const progressBox = document.getElementById('publishProgressBox');
+            const progressBar = document.getElementById('publishProgressBar');
+            const statusStep = document.getElementById('publishStatusStep');
+            const percentText = document.getElementById('publishPercent');
+
+            progressBox.classList.remove('hidden');
+            progressBar.style.width = percent + '%';
+            percentText.innerText = percent + '%';
+            statusStep.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${stepMessage}`;
+        }
+
+        // XUẤT BẢN DỮ LIỆU ĐỒNG BỘ VỚI TIẾN TRÌNH THỰC TẾ (REAL-TIME PROGRESS)
         async function saveProfile() {
             if (!currentUid) {
                 showToast("Chưa xác thực tài khoản! Vui lòng đăng nhập lại.");
@@ -359,41 +418,62 @@
             }
 
             const newUsername = document.getElementById('editUsername').value;
+            
+            // Step 1: Kiểm tra định dạng đầu vào (10%)
+            updatePublishProgress(10, "Kiểm tra định dạng Username...");
             const validated = Security.validateUsername(newUsername);
 
             if (!validated.valid) {
+                document.getElementById('publishProgressBox').classList.add('hidden');
                 showToast(validated.error);
                 return;
             }
 
             const saveBtn = document.getElementById('saveProfileBtn');
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xuất bản...';
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
 
             try {
+                // Step 2: Kiểm tra sự tồn tại của Username trên Database (30%)
+                updatePublishProgress(30, "Kiểm tra tính khả dụng của URL...");
                 if (validated.username !== currentUserData.username) {
                     const checkSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
                     if (checkSnapshot.exists() && checkSnapshot.val().uid !== currentUid) {
+                        document.getElementById('publishProgressBox').classList.add('hidden');
                         showToast("Username này đã có người sử dụng!");
                         saveBtn.disabled = false;
                         saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
                         return;
                     }
 
+                    // Step 3: Xóa mapping username cũ nếu người dùng đổi tên miền mới (60%)
                     if (currentUserData.username) {
+                        updatePublishProgress(60, "Đang cập nhật lại tên miền cũ...");
                         await remove(ref(db, `usernames/${currentUserData.username}`));
                     }
-                    
+
+                    // Step 4: Tạo mapping tên miền phụ mới (80%)
+                    updatePublishProgress(80, "Tạo liên kết URL Bio mới...");
                     await set(ref(db, `usernames/${validated.username}`), { uid: currentUid });
                     currentUserData.username = validated.username;
                 }
 
+                // Step 5: Đưa toàn bộ cấu hình Profile lên database thật (95%)
+                updatePublishProgress(95, "Lưu cấu hình hồ sơ cá nhân...");
                 await set(ref(db, `profiles/${currentUid}`), currentUserData);
-                
-                checkUsernameUIState();
-                showToast("Đã lưu và xuất bản Bio Link thành công!");
+
+                // Step 6: Đạt 100% Hoàn tất
+                updatePublishProgress(100, "Xuất bản thành công!");
+
+                setTimeout(() => {
+                    document.getElementById('publishProgressBox').classList.add('hidden');
+                    checkUsernameUIState();
+                    showToast("Đã lưu và xuất bản Bio Link thành công!");
+                }, 500);
+
             } catch (err) {
                 console.error("Lỗi Firebase Save:", err);
+                document.getElementById('publishProgressBox').classList.add('hidden');
                 showToast("Lỗi lưu dữ liệu: " + (err.message || err));
             } finally {
                 saveBtn.disabled = false;
