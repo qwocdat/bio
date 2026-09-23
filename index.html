@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DIGITALSMOD BIO | Premium Bio Link Platform</title>
+    
+    <meta property="og:title" content="DIGITALSMOD BIO">
+    <meta property="og:description" content="Tạo trang Bio Link cá nhân cao cấp">
+    <meta property="og:type" content="website">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <div id="toastContainer"></div>
+
+    <div id="clickToEnterOverlay" class="enter-overlay hidden">
+        <div class="avatar-wrap">
+            <img id="overlayAvatar" class="profile-avatar" src="" alt="Avatar">
+        </div>
+        <h2 id="overlayName" style="margin-bottom: 8px;"></h2>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">Nhấp vào bất kỳ đâu để vào trang</p>
+        <button class="btn btn-primary" style="width: auto; padding: 10px 24px;">Khám phá</button>
+    </div>
+
+    <div id="authScreen" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px;">
+        <div class="glass-panel" style="width: 100%; max-width: 400px; padding: 36px 28px; text-align: center;">
+            <h1 style="font-size: 1.6rem; margin-bottom: 6px; font-weight: 800;">DIGITALSMOD</h1>
+            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.85rem;">Platform Bio Link Chuyên Nghiệp</p>
+            
+            <form id="authForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="emailInp" class="form-control" required placeholder="user@digitalsmod.site">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu</label>
+                    <input type="password" id="passwordInp" class="form-control" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn btn-primary" id="authBtn">Đăng nhập</button>
+            </form>
+            <div id="toggleAuth" style="margin-top: 16px; font-size: 0.8rem; color: var(--text-muted); cursor: pointer;">Chưa có tài khoản? Đăng ký ngay</div>
+        </div>
+    </div>
+
+    <div id="appScreen" class="hidden">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fa-solid fa-sliders"></i> Editor</h3>
+                <button id="logoutBtn" style="background:none; border:none; color:var(--danger); cursor:pointer;"><i class="fa-solid fa-power-off"></i></button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="editor-section">
+                    <h3>Cấu hình Username</h3>
+                    <div class="form-group">
+                        <label>URL Hồ sơ</label>
+                        <input type="text" id="editUsername" class="form-control" placeholder="quocdat">
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>Thông tin Cá nhân</h3>
+                    <div class="form-group">
+                        <label>Tên hiển thị</label>
+                        <input type="text" id="editName" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>URL Ảnh Avatar</label>
+                        <input type="text" id="editAvatar" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Mô tả (Bio)</label>
+                        <textarea id="editBio" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="editor-section">
+                    <h3>Liên kết <button id="addLinkBtn" style="float:right; background:none; border:none; color:var(--primary); cursor:pointer;"><i class="fa-solid fa-plus"></i> Thêm</button></h3>
+                    <div id="linksEditorContainer"></div>
+                </div>
+
+                <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 10px;"><i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)</button>
+            </div>
+        </div>
+
+        <div class="preview-area">
+            <div class="phone-mockup">
+                <div id="profileRender" class="profile-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="publicScreen" class="hidden">
+        <div id="publicProfileRender" class="profile-container" style="max-width: 440px; margin: 0 auto; min-height: 100vh;"></div>
+    </div>
+
+    <audio id="bgAudio" loop></audio>
+
+    <script type="module">
+        import { Security } from './js/security.js';
+        import { auth, db } from './js/firebase.js';
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { ref, set, get, child, remove } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        let currentUserData = { username: "", name: "", avatar: "", bio: "", links: [] };
+        let currentUid = null;
+        let isLoginMode = true;
+
+        function showToast(msg) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerText = msg;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Định tuyến URL SPA
+        const pathUsername = window.location.pathname.replace(/^\//, '').trim();
+        const urlParams = new URLSearchParams(window.location.search);
+        const queryUsername = urlParams.get('u');
+        const targetUsername = pathUsername || queryUsername;
+
+        if (targetUsername && targetUsername !== 'index.html') {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('publicScreen').classList.remove('hidden');
+            renderPublicPage(targetUsername);
+        } else {
+            initDashboard();
+        }
+
+        async function renderPublicPage(username) {
+            const validated = Security.validateUsername(username);
+            if (!validated.valid) {
+                document.getElementById('publicProfileRender').innerHTML = `<h3>Username không hợp lệ</h3>`;
+                return;
+            }
+
+            try {
+                const usernameSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
+                if (!usernameSnapshot.exists()) {
+                    document.getElementById('publicProfileRender').innerHTML = `<h3>Không tìm thấy người dùng</h3>`;
+                    return;
+                }
+
+                const uid = usernameSnapshot.val().uid;
+                const profileSnapshot = await get(child(ref(db), `profiles/${uid}`));
+                
+                if (profileSnapshot.exists()) {
+                    const data = profileSnapshot.val();
+                    const safeName = Security.sanitizeHTML(data.name || 'No Name');
+                    const safeBio = Security.sanitizeHTML(data.bio || '');
+                    const safeAvatar = Security.sanitizeURL(data.avatar);
+
+                    document.getElementById('publicProfileRender').innerHTML = `
+                        <div class="avatar-wrap">
+                            <img class="profile-avatar" src="${safeAvatar}" alt="Avatar">
+                            ${data.verified ? '<div class="verified-badge"><i class="fa-solid fa-check"></i></div>' : ''}
+                        </div>
+                        <h2 class="profile-name">${safeName}</h2>
+                        <p class="profile-bio">${safeBio}</p>
+                        <div class="links-wrapper">
+                            ${(data.links || []).map(link => {
+                                const safeTitle = Security.sanitizeHTML(link.title);
+                                const safeUrl = Security.sanitizeURL(link.url);
+                                return `
+                                    <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-btn">
+                                        <span>${safeTitle}</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                    document.title = `${safeName} (@${validated.username}) - DIGITALSMOD BIO`;
+                }
+            } catch (err) {
+                console.error(err);
+                document.getElementById('publicProfileRender').innerHTML = `<h3>Lỗi khi tải dữ liệu</h3>`;
+            }
+        }
+
+        function initDashboard() {
+            document.getElementById('toggleAuth').addEventListener('click', () => {
+                isLoginMode = !isLoginMode;
+                document.getElementById('authBtn').innerText = isLoginMode ? "Đăng nhập" : "Đăng ký";
+                document.getElementById('toggleAuth').innerText = isLoginMode ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập";
+            });
+
+            document.getElementById('authForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const email = document.getElementById('emailInp').value;
+                const password = document.getElementById('passwordInp').value;
+
+                try {
+                    if (isLoginMode) {
+                        await signInWithEmailAndPassword(auth, email, password);
+                    } else {
+                        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                        const defaultUsername = `user_${userCred.user.uid.substring(0, 6)}`;
+                        await set(ref(db, `users/${userCred.user.uid}`), { email, role: 'user', vip: false });
+                        await set(ref(db, `usernames/${defaultUsername}`), { uid: userCred.user.uid });
+                        await set(ref(db, `profiles/${userCred.user.uid}`), { username: defaultUsername, name: "Người dùng mới", links: [] });
+                    }
+                } catch (err) {
+                    showToast("Lỗi: " + err.message);
+                }
+            });
+
+            document.getElementById('logoutBtn').addEventListener('click', () => signOut(auth));
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUid = user.uid;
+                    document.getElementById('authScreen').classList.add('hidden');
+                    document.getElementById('appScreen').classList.remove('hidden');
+                    await loadDashboardData(user.uid);
+                } else {
+                    document.getElementById('authScreen').classList.remove('hidden');
+                    document.getElementById('appScreen').classList.add('hidden');
+                }
+            });
+
+            document.getElementById('addLinkBtn').addEventListener('click', () => {
+                if (!currentUserData.links) currentUserData.links = [];
+                if (currentUserData.links.length >= 10) {
+                    showToast("Tài khoản Free giới hạn tối đa 10 links");
+                    return;
+                }
+                currentUserData.links.push({ title: "", url: "" });
+                renderLinksInputs();
+                updateLivePreview();
+            });
+
+            document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
+            
+            ['editName', 'editAvatar', 'editBio'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateLivePreview);
+            });
+        }
+
+        async function loadDashboardData(uid) {
+            const snapshot = await get(child(ref(db), `profiles/${uid}`));
+            if (snapshot.exists()) {
+                currentUserData = snapshot.val();
+                if (!currentUserData.links) currentUserData.links = [];
+            }
+            document.getElementById('editUsername').value = currentUserData.username || '';
+            document.getElementById('editName').value = currentUserData.name || '';
+            document.getElementById('editAvatar').value = currentUserData.avatar || '';
+            document.getElementById('editBio').value = currentUserData.bio || '';
+            
+            renderLinksInputs();
+            updateLivePreview();
+        }
+
+        function renderLinksInputs() {
+            const container = document.getElementById('linksEditorContainer');
+            container.innerHTML = '';
+            (currentUserData.links || []).forEach((link, idx) => {
+                const card = document.createElement('div');
+                card.style.cssText = "background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 10px; padding: 12px; margin-bottom: 10px;";
+                card.innerHTML = `
+                    <input type="text" class="form-control" style="margin-bottom:6px" placeholder="Tiêu đề" value="${Security.sanitizeHTML(link.title)}">
+                    <input type="url" class="form-control" placeholder="URL (https://...)" value="${Security.sanitizeURL(link.url)}">
+                    <button style="background:none; border:none; color:var(--danger); cursor:pointer; margin-top:6px; font-size:0.8rem;"><i class="fa-solid fa-trash"></i> Xóa</button>
+                `;
+                
+                const inputs = card.querySelectorAll('input');
+                inputs[0].addEventListener('input', (e) => { currentUserData.links[idx].title = e.target.value; updateLivePreview(); });
+                inputs[1].addEventListener('input', (e) => { currentUserData.links[idx].url = e.target.value; updateLivePreview(); });
+                card.querySelector('button').addEventListener('click', () => {
+                    currentUserData.links.splice(idx, 1);
+                    renderLinksInputs();
+                    updateLivePreview();
+                });
+
+                container.appendChild(card);
+            });
+        }
+
+        function updateLivePreview() {
+            currentUserData.name = document.getElementById('editName').value;
+            currentUserData.avatar = document.getElementById('editAvatar').value;
+            currentUserData.bio = document.getElementById('editBio').value;
+
+            const safeName = Security.sanitizeHTML(currentUserData.name || 'Your Name');
+            const safeBio = Security.sanitizeHTML(currentUserData.bio || '');
+            const safeAvatar = Security.sanitizeURL(currentUserData.avatar);
+
+            document.getElementById('profileRender').innerHTML = `
+                <div class="avatar-wrap">
+                    <img class="profile-avatar" src="${safeAvatar}" alt="Avatar">
+                </div>
+                <h2 class="profile-name">${safeName}</h2>
+                <p class="profile-bio">${safeBio}</p>
+                <div class="links-wrapper">
+                    ${(currentUserData.links || []).map(link => `
+                        <a href="${Security.sanitizeURL(link.url)}" target="_blank" class="link-btn">
+                            <span>${Security.sanitizeHTML(link.title || 'Untitled')}</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function saveProfile() {
+            const newUsername = document.getElementById('editUsername').value;
+            const validated = Security.validateUsername(newUsername);
+
+            if (!validated.valid) {
+                showToast(validated.error);
+                return;
+            }
+
+            try {
+                if (validated.username !== currentUserData.username) {
+                    const checkSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
+                    if (checkSnapshot.exists() && checkSnapshot.val().uid !== currentUid) {
+                        showToast("Username đã có người sử dụng!");
+                        return;
+                    }
+                    if (currentUserData.username) {
+                        await remove(ref(db, `usernames/${currentUserData.username}`));
+                    }
+                    await set(ref(db, `usernames/${validated.username}`), { uid: currentUid });
+                    currentUserData.username = validated.username;
+                }
+
+                await set(ref(db, `profiles/${currentUid}`), currentUserData);
+                showToast("Đã lưu thay đổi thành công!");
+            } catch (err) {
+                showToast("Lỗi khi lưu: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>
