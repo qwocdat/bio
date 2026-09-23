@@ -12,6 +12,29 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+
+    <style>
+        /* LOẠI BỎ VIỀN TÔ XANH / FOCUS HIGHLIGHT MẶC ĐỊNH */
+        *, *::before, *::after {
+            -webkit-tap-highlight-color: transparent !important;
+            outline: none !important;
+        }
+
+        input:focus, 
+        textarea:focus, 
+        button:focus, 
+        a:focus, 
+        select:focus {
+            outline: none !important;
+            box-shadow: none !important;
+            border-color: var(--glass-border) !important;
+        }
+
+        .btn-primary:focus {
+            background-color: var(--primary) !important;
+            color: #000 !important;
+        }
+    </style>
 </head>
 <body>
 
@@ -54,33 +77,37 @@
             </div>
             
             <div class="sidebar-content">
+                <!-- BƯỚC 1: CẤU HÌNH USERNAME LIÊN KẾT TRƯỚC -->
                 <div class="editor-section">
-                    <h3>Cấu hình Username</h3>
+                    <h3>Cấu hình Username (Tạo Link Bio)</h3>
                     <div class="form-group">
-                        <label>URL Hồ sơ</label>
-                        <input type="text" id="editUsername" class="form-control" placeholder="quocdat">
+                        <label>URL Hồ sơ (Ví dụ: bio.digitalsmod.site/quocdat)</label>
+                        <input type="text" id="editUsername" class="form-control" placeholder="Nhập username mong muốn...">
                     </div>
                 </div>
 
-                <div class="editor-section">
-                    <h3>Thông tin Cá nhân</h3>
-                    <div class="form-group">
-                        <label>Tên hiển thị</label>
-                        <input type="text" id="editName" class="form-control">
+                <!-- BƯỚC 2: CÁC PHẦN CHỈNH SỬA WEB CHỈ HIỆN SAU KHHI ĐÃ CÓ USERNAME -->
+                <div id="extendedEditorSections" class="hidden">
+                    <div class="editor-section">
+                        <h3>Thông tin Cá nhân</h3>
+                        <div class="form-group">
+                            <label>Tên hiển thị</label>
+                            <input type="text" id="editName" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>URL Ảnh Avatar</label>
+                            <input type="text" id="editAvatar" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Mô tả (Bio)</label>
+                            <textarea id="editBio" class="form-control" rows="3"></textarea>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>URL Ảnh Avatar</label>
-                        <input type="text" id="editAvatar" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label>Mô tả (Bio)</label>
-                        <textarea id="editBio" class="form-control" rows="3"></textarea>
-                    </div>
-                </div>
 
-                <div class="editor-section">
-                    <h3>Liên kết <button id="addLinkBtn" style="float:right; background:none; border:none; color:var(--primary); cursor:pointer;"><i class="fa-solid fa-plus"></i> Thêm</button></h3>
-                    <div id="linksEditorContainer"></div>
+                    <div class="editor-section">
+                        <h3>Liên kết <button id="addLinkBtn" style="float:right; background:none; border:none; color:var(--primary); cursor:pointer;"><i class="fa-solid fa-plus"></i> Thêm</button></h3>
+                        <div id="linksEditorContainer"></div>
+                    </div>
                 </div>
 
                 <button id="saveProfileBtn" class="btn btn-primary" style="margin-top: 10px;"><i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)</button>
@@ -201,10 +228,7 @@
                         await signInWithEmailAndPassword(auth, email, password);
                     } else {
                         const userCred = await createUserWithEmailAndPassword(auth, email, password);
-                        const defaultUsername = `user_${userCred.user.uid.substring(0, 6)}`;
                         await set(ref(db, `users/${userCred.user.uid}`), { email, role: 'user', vip: false });
-                        await set(ref(db, `usernames/${defaultUsername}`), { uid: userCred.user.uid });
-                        await set(ref(db, `profiles/${userCred.user.uid}`), { username: defaultUsername, name: "Người dùng mới", links: [] });
                     }
                 } catch (err) {
                     showToast("Lỗi: " + err.message);
@@ -220,6 +244,7 @@
                     document.getElementById('appScreen').classList.remove('hidden');
                     await loadDashboardData(user.uid);
                 } else {
+                    currentUid = null;
                     document.getElementById('authScreen').classList.remove('hidden');
                     document.getElementById('appScreen').classList.add('hidden');
                 }
@@ -238,24 +263,42 @@
 
             document.getElementById('saveProfileBtn').addEventListener('click', saveProfile);
             
-            ['editName', 'editAvatar', 'editBio'].forEach(id => {
+            ['editUsername', 'editName', 'editAvatar', 'editBio'].forEach(id => {
                 document.getElementById(id).addEventListener('input', updateLivePreview);
             });
         }
 
         async function loadDashboardData(uid) {
-            const snapshot = await get(child(ref(db), `profiles/${uid}`));
-            if (snapshot.exists()) {
-                currentUserData = snapshot.val();
-                if (!currentUserData.links) currentUserData.links = [];
+            try {
+                const snapshot = await get(child(ref(db), `profiles/${uid}`));
+                if (snapshot.exists()) {
+                    currentUserData = snapshot.val();
+                    if (!currentUserData.links) currentUserData.links = [];
+                } else {
+                    currentUserData = { username: "", name: "", avatar: "", bio: "", links: [] };
+                }
+
+                document.getElementById('editUsername').value = currentUserData.username || '';
+                document.getElementById('editName').value = currentUserData.name || '';
+                document.getElementById('editAvatar').value = currentUserData.avatar || '';
+                document.getElementById('editBio').value = currentUserData.bio || '';
+                
+                checkUsernameUIState();
+                renderLinksInputs();
+                updateLivePreview();
+            } catch (err) {
+                console.error("Lỗi đọc Profile:", err);
+                showToast("Lỗi kết nối cơ sở dữ liệu");
             }
-            document.getElementById('editUsername').value = currentUserData.username || '';
-            document.getElementById('editName').value = currentUserData.name || '';
-            document.getElementById('editAvatar').value = currentUserData.avatar || '';
-            document.getElementById('editBio').value = currentUserData.bio || '';
-            
-            renderLinksInputs();
-            updateLivePreview();
+        }
+
+        function checkUsernameUIState() {
+            const extendedSection = document.getElementById('extendedEditorSections');
+            if (currentUserData.username && currentUserData.username.trim() !== '') {
+                extendedSection.classList.remove('hidden');
+            } else {
+                extendedSection.classList.add('hidden');
+            }
         }
 
         function renderLinksInputs() {
@@ -310,6 +353,11 @@
         }
 
         async function saveProfile() {
+            if (!currentUid) {
+                showToast("Chưa xác thực tài khoản! Vui lòng đăng nhập lại.");
+                return;
+            }
+
             const newUsername = document.getElementById('editUsername').value;
             const validated = Security.validateUsername(newUsername);
 
@@ -318,24 +366,38 @@
                 return;
             }
 
+            const saveBtn = document.getElementById('saveProfileBtn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xuất bản...';
+
             try {
                 if (validated.username !== currentUserData.username) {
                     const checkSnapshot = await get(child(ref(db), `usernames/${validated.username}`));
                     if (checkSnapshot.exists() && checkSnapshot.val().uid !== currentUid) {
-                        showToast("Username đã có người sử dụng!");
+                        showToast("Username này đã có người sử dụng!");
+                        saveBtn.disabled = false;
+                        saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
                         return;
                     }
+
                     if (currentUserData.username) {
                         await remove(ref(db, `usernames/${currentUserData.username}`));
                     }
+                    
                     await set(ref(db, `usernames/${validated.username}`), { uid: currentUid });
                     currentUserData.username = validated.username;
                 }
 
                 await set(ref(db, `profiles/${currentUid}`), currentUserData);
-                showToast("Đã lưu thay đổi thành công!");
+                
+                checkUsernameUIState();
+                showToast("Đã lưu và xuất bản Bio Link thành công!");
             } catch (err) {
-                showToast("Lỗi khi lưu: " + err.message);
+                console.error("Lỗi Firebase Save:", err);
+                showToast("Lỗi lưu dữ liệu: " + (err.message || err));
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Xuất bản (Publish)';
             }
         }
     </script>
