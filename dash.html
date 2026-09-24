@@ -1,314 +1,490 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard điều khiển - Code Editor</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0f172a;
-    color: #e2e8f0;
-    overflow: hidden;
-  }
-  .topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    background: #1e293b;
-    border-bottom: 1px solid #334155;
-  }
-  .topbar h1 {
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-  .status {
-    font-size: 0.8rem;
-    color: #f59e0b;
-  }
-  .status.live { color: #22c55e; }
-  .status.error { color: #ef4444; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Bio Link</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    :root {
+      --bg-base: #0a0a0c;
+      --accent-color: #8b5cf6;
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-blur: blur(20px);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
 
-  /* Toolbar tiện ích */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    background: #0f172a;
-    border-bottom: 1px solid #1e293b;
-    flex-wrap: wrap;
-  }
-  .btn {
-    background: #334155;
-    color: #f8fafc;
-    border: 1px solid #475569;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .btn:hover {
-    background: #475569;
-    border-color: #64748b;
-  }
-  .btn-primary {
-    background: #2563eb;
-    border-color: #3b82f6;
-  }
-  .btn-primary:hover {
-    background: #1d4ed8;
-  }
-  .btn-warning {
-    background: #d97706;
-    border-color: #f59e0b;
-  }
-  .btn-warning:hover {
-    background: #b45309;
-  }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); }
 
-  #editor {
-    width: 100%;
-    height: calc(100vh - 90px);
-    background: #0f172a;
-    color: #e2e8f0;
-    border: none;
-    outline: none;
-    resize: none;
-    padding: 16px;
-    font-family: "Fira Code", "Cascadia Code", Consolas, Menlo, monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    tab-size: 2;
-    white-space: pre;
-  }
-</style>
-</head>
-<body>
-  <div class="topbar">
-    <h1>🎛️ dash.html — gõ mã HTML, index.html cập nhật realtime cho MỌI người</h1>
-    <span class="status" id="status">● đang kết nối...</span>
-  </div>
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: row;
+      justify-content: flex-start;
+      align-items: stretch;
+      overflow-x: hidden;
+    }
 
-  <!-- Thanh tiện ích nhanh -->
-  <div class="toolbar">
-    <button class="btn btn-primary" id="btn-send">🚀 Gửi Code Ngay</button>
-    <button class="btn btn-warning" id="btn-maintenance">🛠️ Thêm Thông báo Bảo trì</button>
-    <button class="btn" id="btn-format">✨ Căn chỉnh Code</button>
-    <button class="btn" id="btn-copy">📋 Copy Code</button>
-    <button class="btn" id="btn-clear">🧹 Xóa sạch</button>
-  </div>
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+    }
 
-  <textarea id="editor" spellcheck="false">&lt;!DOCTYPE html&gt;
-&lt;html lang="vi"&gt;
-&lt;head&gt;
-&lt;meta charset="UTF-8"&gt;
-&lt;style&gt;
-  body {
-    margin: 0;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    font-family: sans-serif;
-    background: linear-gradient(135deg, #1f2937, #111827);
-    color: #fff;
-    text-align: center;
-  }
-  h1 { font-size: 2.5rem; margin-bottom: 12px; }
-  p { opacity: .8; max-width: 500px; }
-&lt;/style&gt;
-&lt;/head&gt;
-&lt;body&gt;
-  &lt;h1&gt;Xin chào 👋&lt;/h1&gt;
-  &lt;p&gt;Sửa mã HTML bên khung soạn thảo này, index.html của mọi người sẽ cập nhật ngay lập tức.&lt;/p&gt;
-&lt;/body&gt;
-&lt;/html&gt;
-</textarea>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
-    authDomain: "quocdat-396fe.firebaseapp.com",
-    databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "quocdat-396fe",
-    storageBucket: "quocdat-396fe.firebasestorage.app",
-    messagingSenderId: "685476439350",
-    appId: "1:685476439350:web:ba9cd78dca8351c5383f97"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const liveRef = ref(db, 'liveHtml');
-
-  const editor = document.getElementById('editor');
-  const statusEl = document.getElementById('status');
-
-  let debounceTimer = null;
-  let isRemoteUpdate = false;
-
-  function setStatus(text, cls) {
-    statusEl.textContent = text;
-    statusEl.className = 'status ' + (cls || '');
-  }
-
-  // Hàm đẩy code bắt buộc (Bỏ qua cờ check khi bấm nút trực tiếp)
-  function pushUpdate(force = false) {
-    if (isRemoteUpdate && !force) return;
-    setStatus('● đang gửi lên Firebase...');
+    .admin-wrapper { display: flex; width: 100vw; min-height: 100vh; }
+    .sidebar { width: 260px; padding: 24px; border-right: 1px solid var(--glass-border); display: flex; flex-direction: column; gap: 20px; }
+    .main-editor { flex: 1; padding: 32px; overflow-y: auto; max-height: 100vh; }
+    .preview-pane { width: 420px; padding: 24px; border-left: 1px solid var(--glass-border); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .phone-mockup { width: 360px; height: 720px; border-radius: 40px; border: 8px solid #222; overflow-y: auto; position: relative; background: #000; }
     
-    set(liveRef, editor.value)
-      .then(() => {
-        setStatus('● đã đồng bộ ' + new Date().toLocaleTimeString(), 'live');
-        if (force) alert('✅ Đã gửi code thành công!');
-      })
-      .catch((err) => {
-        setStatus('● lỗi: ' + err.message, 'error');
-        alert('❌ Lỗi gửi code: ' + err.message);
-      });
-  }
+    .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    input, textarea, select { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: #fff; padding: 12px; border-radius: 8px; font-size: 0.9rem; }
+    button.btn-primary { background: var(--accent-color); color: #fff; border: none; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+    
+    .nav-btn { background: transparent; border: none; color: var(--text-muted); padding: 12px; text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
+    .nav-btn.active, .nav-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .card-list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 8px; background: rgba(255,255,255,0.02); }
+    
+    #auth-overlay { position: fixed; inset: 0; background: #0a0a0c; z-index: 1000; display: flex; align-items: center; justify-content: center; }
 
-  editor.addEventListener('input', () => {
-    setStatus('● đang gõ...');
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => pushUpdate(false), 400);
-  });
-
-  // Phím Tab
-  editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-      editor.selectionStart = editor.selectionEnd = start + 2;
+    @media (max-width: 1024px) {
+      .preview-pane { display: none; }
+      .admin-wrapper { flex-direction: column; }
+      .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--glass-border); }
     }
-  });
-
-  // Đọc dữ liệu Realtime
-  onValue(liveRef, (snapshot) => {
-    const val = snapshot.val();
-    if (val !== null && val !== editor.value && document.activeElement !== editor) {
-      isRemoteUpdate = true;
-      editor.value = val;
-      isRemoteUpdate = false;
-    }
-    setStatus('● đã kết nối Firebase', 'live');
-  }, (err) => {
-    setStatus('● lỗi kết nối: ' + err.message, 'error');
-  });
-
-  /* ==========================================
-     SỬA LẠI SỰ KIỆN NÚT BẤM (FORCE SEND)
-     ========================================== */
-
-  // 1. Nút Gửi Code Ngay (Bắt buộc gửi force = true)
-  document.getElementById('btn-send').addEventListener('click', () => {
-    clearTimeout(debounceTimer);
-    pushUpdate(true);
-  });
-
-  // 2. Nút Mẫu Bảo Trì
-  document.getElementById('btn-maintenance').addEventListener('click', () => {
-    if (confirm('Chèn mẫu bảo trì? Code hiện tại sẽ bị ghi đè.')) {
-      editor.value = `<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hệ Thống Đang Bảo Trì</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: system-ui, -apple-system, sans-serif;
-    background: #030712;
-    color: #f3f4f6;
-    text-align: center;
-    padding: 20px;
-  }
-  .card {
-    background: rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 40px 30px;
-    border-radius: 24px;
-    max-width: 450px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-  }
-  .icon { font-size: 3rem; margin-bottom: 16px; }
-  h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 12px; color: #f59e0b; }
-  p { font-size: 0.95rem; color: #9ca3af; line-height: 1.6; margin-bottom: 24px; }
-  .badge {
-    display: inline-block;
-    padding: 6px 16px;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    border-radius: 100px;
-    font-size: 0.8rem;
-    font-weight: 600;
-  }
-</style>
+  </style>
 </head>
 <body>
-  <div class="card">
-    <div class="icon">🛠️</div>
-    <span class="badge">SYSTEM MAINTENANCE</span>
-    <h1 style="margin-top: 12px;">Đang Bảo Trì Hệ Thống</h1>
-    <p>Website đang được nâng cấp để mang lại trải nghiệm tốt nhất. Vui lòng quay lại sau!</p>
+
+  <!-- Auth Screen -->
+  <div id="auth-overlay">
+    <div class="glass-panel" style="width: 340px; padding: 24px;">
+      <h2 style="margin-bottom: 16px;">Đăng nhập Admin</h2>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="admin@example.com">
+      </div>
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <input type="password" id="login-password" placeholder="••••••••">
+      </div>
+      <button id="btn-login" class="btn-primary" style="width: 100%;">Đăng nhập</button>
+      <p id="login-error" style="color:#ef4444; font-size:0.8rem; margin-top:8px;"></p>
+    </div>
   </div>
-</body>
-</html>`;
-      pushUpdate(true);
-    }
-  });
 
-  // 3. Nút Căn Chỉnh Code
-  document.getElementById('btn-format').addEventListener('click', () => {
-    let lines = editor.value.split('\n');
-    let indent = 0;
-    let formatted = lines.map(line => {
-      let trimmed = line.trim();
-      if (!trimmed) return '';
-      if (trimmed.startsWith('</') || trimmed.startsWith('}')) indent = Math.max(0, indent - 1);
-      let padded = '  '.repeat(indent) + trimmed;
-      if ((trimmed.startsWith('<') && !trimmed.startsWith('</') && !trimmed.endsWith('/>') && !trimmed.includes('</')) || trimmed.endsWith('{')) {
-        indent++;
+  <!-- Admin Application -->
+  <div class="admin-wrapper">
+    <aside class="sidebar glass-panel">
+      <h3>Control Panel</h3>
+      <nav style="display:flex; flex-direction:column; gap:8px;">
+        <button class="nav-btn active" onclick="switchTab('dashboard')"><i class="fa-solid fa-chart-pie"></i> Thống kê</button>
+        <button class="nav-btn" onclick="switchTab('profile')"><i class="fa-solid fa-user-gear"></i> Cá nhân</button>
+        <button class="nav-btn" onclick="switchTab('links')"><i class="fa-solid fa-link"></i> Quản lý Link</button>
+        <button class="nav-btn" onclick="switchTab('socials')"><i class="fa-solid fa-share-nodes"></i> Mạng xã hội</button>
+        <button class="nav-btn" onclick="switchTab('appearance')"><i class="fa-solid fa-wand-magic-sparkles"></i> Giao diện</button>
+      </nav>
+      <button id="btn-logout" class="nav-btn" style="margin-top:auto; color:#ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
+    </aside>
+
+    <main class="main-editor">
+      <section id="tab-dashboard">
+        <h2>Tổng quan Thống kê</h2>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-top:20px;">
+          <div class="glass-panel" style="padding:20px;">
+            <h4>Lượt ghé thăm</h4>
+            <h1 id="stat-views" style="color:var(--accent-color);">0</h1>
+          </div>
+          <div class="glass-panel" style="padding:20px;">
+            <h4>Click Liên kết</h4>
+            <h1 id="stat-clicks" style="color:var(--accent-color);">0</h1>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-profile" style="display:none;">
+        <h2>Thông tin Cá nhân</h2>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Username (URL Identification)</label>
+          <input type="text" id="edit-username">
+        </div>
+        <div class="form-group">
+          <label>Tên hiển thị</label>
+          <input type="text" id="edit-name">
+        </div>
+        <div class="form-group">
+          <label>Bio (Giới thiệu)</label>
+          <textarea id="edit-bio" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Avatar</label>
+          <input type="file" id="edit-avatar-file" accept="image/*">
+        </div>
+        <div class="form-group">
+          <label>Huy hiệu Badge</label>
+          <select id="edit-badge">
+            <option value="none">Không có</option>
+            <option value="verified">Verified (Tích xanh)</option>
+            <option value="vip">VIP Crown</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Hiệu ứng Avatar</label>
+          <select id="edit-avatar-anim">
+            <option value="">Không có</option>
+            <option value="float">Float (Bay nhẹ)</option>
+            <option value="pulse">Pulse (Nảy)</option>
+            <option value="glow">Glow (Phát sáng)</option>
+          </select>
+        </div>
+        <button id="btn-save-profile" class="btn-primary">Lưu Cá Nhân</button>
+      </section>
+
+      <section id="tab-links" style="display:none;">
+        <h2>Quản lý Đường Dẫn</h2>
+        <div class="glass-panel" style="padding:16px; margin: 16px 0;">
+          <h4>Thêm / Sửa Link</h4>
+          <input type="hidden" id="link-id-hidden">
+          <div class="form-group" style="margin-top:8px;">
+            <label>Tiêu đề</label>
+            <input type="text" id="link-title" placeholder="Ví dụ: YouTube Channel">
+          </div>
+          <div class="form-group">
+            <label>URL</label>
+            <input type="url" id="link-url" placeholder="https://youtube.com/...">
+          </div>
+          <div class="form-group">
+            <label>Mô tả ngắn</label>
+            <input type="text" id="link-desc" placeholder="Xem video mới nhất">
+          </div>
+          <div class="form-group">
+            <label>FontAwesome Icon Class</label>
+            <input type="text" id="link-icon" placeholder="fa-brands fa-youtube">
+          </div>
+          <button id="btn-save-link" class="btn-primary">Lưu Link</button>
+        </div>
+        <div id="admin-links-list"></div>
+      </section>
+
+      <section id="tab-socials" style="display:none;">
+        <h2>Mạng Xã Hội</h2>
+        <div id="socials-editor-list" style="margin-top:16px;"></div>
+        <button id="btn-save-socials" class="btn-primary" style="margin-top:16px;">Lưu Mạng Xã Hội</button>
+      </section>
+
+      <section id="tab-appearance" style="display:none;">
+        <h2>Giao diện & Nhạc nền</h2>
+        <div class="form-group" style="margin-top:16px;">
+          <label>Màu Accent (Chủ đạo)</label>
+          <input type="color" id="edit-accent" style="height:40px;">
+        </div>
+        <div class="form-group">
+          <label>Loại Background</label>
+          <select id="edit-bg-type">
+            <option value="color">Màu/Gradient CSS</option>
+            <option value="image">Hình ảnh URL</option>
+            <option value="video">Video MP4 URL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Giá trị Background (Màu, Gradient hoặc URL Media)</label>
+          <input type="text" id="edit-bg-value" placeholder="linear-gradient(135deg, #111, #222) hoặc URL">
+        </div>
+        <div class="form-group">
+          <label>Nhạc nền Audio URL (MP3)</label>
+          <input type="url" id="edit-music-url" placeholder="https://site.com/audio.mp3">
+        </div>
+        <div class="form-group" style="flex-direction:row; align-items:center; gap:10px;">
+          <input type="checkbox" id="edit-click-enter" style="width:20px; height:20px;">
+          <label for="edit-click-enter">Bật màn hình "Click to Enter"</label>
+        </div>
+        <button id="btn-save-appearance" class="btn-primary">Lưu Giao Diện</button>
+      </section>
+    </main>
+
+    <aside class="preview-pane">
+      <h3>Live Preview</h3>
+      <div class="phone-mockup">
+        <iframe id="preview-iframe" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
+      </div>
+    </aside>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, set, get, child, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    // Cấu hình Firebase thực tế của bạn
+    const firebaseConfig = {
+      apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
+      authDomain: "taikhoan-fc704.firebaseapp.com",
+      databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "taikhoan-fc704",
+      storageBucket: "taikhoan-fc704.firebasestorage.app",
+      messagingSenderId: "867203109533",
+      appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74",
+      measurementId: "G-PQDSS2N5XE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const storage = getStorage(app);
+
+    function sanitizeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    let currentUID = null;
+    let profileData = {};
+    let linksData = {};
+    let socialsData = {};
+
+    onAuthStateChanged(auth, async (user) => {
+      const authOverlay = document.getElementById('auth-overlay');
+      if (user) {
+        const rSnap = await get(child(ref(db), `users/${user.uid}`));
+        if (rSnap.exists() && rSnap.val().role === 'admin') {
+          currentUID = user.uid;
+          authOverlay.style.display = 'none';
+          initAdminData();
+        } else {
+          alert("Tài khoản chưa được cấp quyền role: 'admin' trong Database!");
+          signOut(auth);
+        }
+      } else {
+        authOverlay.style.display = 'flex';
       }
-      return padded;
-    }).join('\n');
-    editor.value = formatted;
-    pushUpdate(true);
-  });
+    });
 
-  // 4. Copy Code
-  document.getElementById('btn-copy').addEventListener('click', () => {
-    navigator.clipboard.writeText(editor.value).then(() => alert('Đã copy code!'));
-  });
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-password').value;
+      const errEl = document.getElementById('login-error');
+      errEl.innerText = '';
 
-  // 5. Xóa Sạch
-  document.getElementById('btn-clear').addEventListener('click', () => {
-    if (confirm('Xóa sạch nội dung?')) {
-      editor.value = '';
-      pushUpdate(true);
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        errEl.innerText = 'Đăng nhập thất bại: ' + err.message;
+      }
+    });
+
+    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+      document.getElementById(`tab-${tabName}`).style.display = 'block';
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+    };
+
+    function initAdminData() {
+      const dbRef = ref(db);
+
+      onValue(child(dbRef, `profiles/${currentUID}`), (snap) => {
+        if (snap.exists()) {
+          profileData = snap.val();
+          populateProfileForm(profileData);
+          updatePreview();
+        }
+      });
+
+      onValue(child(dbRef, `links/${currentUID}`), (snap) => {
+        linksData = snap.exists() ? snap.val() : {};
+        renderAdminLinks(linksData);
+        updatePreview();
+      });
+
+      onValue(child(dbRef, `socials/${currentUID}`), (snap) => {
+        socialsData = snap.exists() ? snap.val() : {};
+        renderAdminSocials(socialsData);
+        updatePreview();
+      });
+
+      onValue(child(dbRef, `analytics/${currentUID}`), (snap) => {
+        if (snap.exists()) {
+          document.getElementById('stat-views').innerText = snap.val().views || 0;
+          document.getElementById('stat-clicks').innerText = snap.val().clicks || 0;
+        }
+      });
     }
-  });
-</script>
+
+    function updatePreview() {
+      if (profileData.username) {
+        document.getElementById('preview-iframe').src = `index.html?u=${profileData.username}&preview=true`;
+      }
+    }
+
+    document.getElementById('btn-save-profile').addEventListener('click', async () => {
+      const username = document.getElementById('edit-username').value.trim().toLowerCase();
+      const name = document.getElementById('edit-name').value;
+      const bio = document.getElementById('edit-bio').value;
+      const badge = document.getElementById('edit-badge').value;
+      const avatarAnim = document.getElementById('edit-avatar-anim').value;
+      const fileInput = document.getElementById('edit-avatar-file');
+
+      let avatarUrl = profileData.avatar || '';
+
+      if (fileInput.files[0]) {
+        const file = fileInput.files[0];
+        const imgRef = sRef(storage, `avatars/${currentUID}_${Date.now()}`);
+        await uploadBytes(imgRef, file);
+        avatarUrl = await getDownloadURL(imgRef);
+      }
+
+      if (profileData.username && profileData.username !== username) {
+        await remove(ref(db, `usernames/${profileData.username}`));
+      }
+      await set(ref(db, `usernames/${username}`), { uid: currentUID });
+
+      const payload = { ...profileData, username, name, bio, badge, avatarAnim, avatar: avatarUrl };
+      await set(ref(db, `profiles/${currentUID}`), payload);
+      alert('Đã cập nhật Profile!');
+    });
+
+    function populateProfileForm(data) {
+      document.getElementById('edit-username').value = data.username || '';
+      document.getElementById('edit-name').value = data.name || '';
+      document.getElementById('edit-bio').value = data.bio || '';
+      document.getElementById('edit-badge').value = data.badge || 'none';
+      document.getElementById('edit-avatar-anim').value = data.avatarAnim || '';
+      document.getElementById('edit-accent').value = data.accentColor || '#8b5cf6';
+      document.getElementById('edit-bg-type').value = data.bgType || 'color';
+      document.getElementById('edit-bg-value').value = data.bgValue || '';
+      document.getElementById('edit-music-url').value = data.musicUrl || '';
+      document.getElementById('edit-click-enter').checked = !!data.clickToEnter;
+    }
+
+    document.getElementById('btn-save-link').addEventListener('click', async () => {
+      const id = document.getElementById('link-id-hidden').value || `link_${Date.now()}`;
+      const title = document.getElementById('link-title').value;
+      const url = document.getElementById('link-url').value;
+      const description = document.getElementById('link-desc').value;
+      const icon = document.getElementById('link-icon').value;
+
+      const payload = {
+        title, url, description, icon, enabled: true,
+        order: linksData[id] ? linksData[id].order : Object.keys(linksData).length
+      };
+
+      await set(ref(db, `links/${currentUID}/${id}`), payload);
+      document.getElementById('link-id-hidden').value = '';
+      document.getElementById('link-title').value = '';
+      document.getElementById('link-url').value = '';
+      document.getElementById('link-desc').value = '';
+      document.getElementById('link-icon').value = '';
+    });
+
+    function renderAdminLinks(linksObj) {
+      const container = document.getElementById('admin-links-list');
+      container.innerHTML = '';
+
+      const linksArray = Object.keys(linksObj).map(k => ({ id: k, ...linksObj[k] }));
+      linksArray.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      linksArray.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'card-list-item';
+        card.draggable = true;
+
+        card.innerHTML = `
+          <div>
+            <i class="fa-solid fa-grip-vertical" style="cursor:grab; margin-right:8px;"></i>
+            <strong>${sanitizeHTML(item.title)}</strong>
+            <p style="font-size:0.8rem; color:var(--text-muted);">${sanitizeHTML(item.url)}</p>
+          </div>
+          <div>
+            <button onclick="editLink('${item.id}')" style="background:none; border:none; color:#3b82f6; cursor:pointer; margin-right:8px;"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="deleteLink('${item.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        `;
+
+        card.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', item.id));
+        card.addEventListener('dragover', (e) => e.preventDefault());
+        card.addEventListener('drop', async (e) => {
+          e.preventDefault();
+          const draggedId = e.dataTransfer.getData('text/plain');
+          if (draggedId !== item.id) {
+            const order1 = linksData[draggedId].order;
+            const order2 = linksData[item.id].order;
+            await update(ref(db, `links/${currentUID}/${draggedId}`), { order: order2 });
+            await update(ref(db, `links/${currentUID}/${item.id}`), { order: order1 });
+          }
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    window.editLink = function(id) {
+      const item = linksData[id];
+      document.getElementById('link-id-hidden').value = id;
+      document.getElementById('link-title').value = item.title || '';
+      document.getElementById('link-url').value = item.url || '';
+      document.getElementById('link-desc').value = item.description || '';
+      document.getElementById('link-icon').value = item.icon || '';
+    };
+
+    window.deleteLink = async function(id) {
+      if (confirm('Xóa link này?')) {
+        await remove(ref(db, `links/${currentUID}/${id}`));
+      }
+    };
+
+    const SOCIAL_PLATFORMS = ['facebook', 'tiktok', 'youtube', 'instagram', 'discord', 'telegram', 'github', 'x', 'email'];
+
+    function renderAdminSocials(data) {
+      const container = document.getElementById('socials-editor-list');
+      container.innerHTML = '';
+
+      SOCIAL_PLATFORMS.forEach(platform => {
+        const item = data[platform] || { url: '', enabled: false };
+        const div = document.createElement('div');
+        div.className = 'form-group';
+        div.style.flexDirection = 'row';
+        div.style.alignItems = 'center';
+
+        div.innerHTML = `
+          <input type="checkbox" id="soc-enable-${platform}" ${item.enabled ? 'checked' : ''} style="width:20px; height:20px;">
+          <label style="width:100px; text-transform:capitalize;">${platform}</label>
+          <input type="text" id="soc-url-${platform}" value="${sanitizeHTML(item.url)}" placeholder="URL hoặc Username" style="flex:1;">
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById('btn-save-socials').addEventListener('click', async () => {
+      const payload = {};
+      SOCIAL_PLATFORMS.forEach(p => {
+        payload[p] = {
+          enabled: document.getElementById(`soc-enable-${p}`).checked,
+          url: document.getElementById(`soc-url-${p}`).value.trim()
+        };
+      });
+      await set(ref(db, `socials/${currentUID}`), payload);
+      alert('Đã lưu Mạng xã hội!');
+    });
+
+    document.getElementById('btn-save-appearance').addEventListener('click', async () => {
+      await update(ref(db, `profiles/${currentUID}`), {
+        accentColor: document.getElementById('edit-accent').value,
+        bgType: document.getElementById('edit-bg-type').value,
+        bgValue: document.getElementById('edit-bg-value').value,
+        musicUrl: document.getElementById('edit-music-url').value,
+        clickToEnter: document.getElementById('edit-click-enter').checked
+      });
+      alert('Đã lưu Giao diện!');
+    });
+  </script>
 </body>
 </html>
