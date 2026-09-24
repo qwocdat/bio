@@ -3,371 +3,415 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DIGITALSMOD — Personal Profile</title>
-  <meta name="description" content="Trang cá nhân chính thức của DIGITALSMOD. Developer, Creator & Digital Architect.">
-  <meta name="theme-color" content="#030712">
-
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
-
+  <title>Bio Link</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
-      --bg-dark: #030712;
-      --card-bg: rgba(255, 255, 255, 0.04);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --card-hover-bg: rgba(255, 255, 255, 0.08);
-      --card-hover-border: rgba(255, 255, 255, 0.25);
-      --accent-cyan: #06b6d4;
-      --accent-purple: #8b5cf6;
-      --text-main: #f9fafb;
+      --bg-base: #0a0a0c;
+      --accent-color: #8b5cf6;
+      --accent-glow: rgba(139, 92, 246, 0.4);
+      --glass-bg: rgba(255, 255, 255, 0.03);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-blur: blur(20px);
+      --text-main: #f3f4f6;
       --text-muted: #9ca3af;
-      --radius-lg: 24px;
-      --radius-md: 16px;
-      --transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      --radius-card: 24px;
+      --radius-btn: 16px;
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      --card-opacity: 0.03;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-family);
+      -webkit-tap-highlight-color: transparent;
+    }
 
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--bg-dark);
+      background-color: var(--bg-base);
       color: var(--text-main);
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 20px;
-      position: relative;
-      background-image: 
-        radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.12) 0%, transparent 60%),
-        radial-gradient(circle at 90% 90%, rgba(6, 182, 212, 0.08) 0%, transparent 50%);
-      background-attachment: fixed;
       overflow-x: hidden;
+      position: relative;
     }
 
-    /* Hiệu ứng hạt Noise nhẹ */
-    .noise-bg {
+    .glass-panel {
+      background: rgba(255, 255, 255, var(--card-opacity));
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--radius-card);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    #bg-canvas {
       position: fixed;
-      inset: 0;
-      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)" opacity="0.025"/></svg>');
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -2;
+      object-fit: cover;
+    }
+
+    #bg-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      background: radial-gradient(circle at 50% 30%, var(--accent-glow) 0%, transparent 70%);
       pointer-events: none;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
       z-index: 1;
     }
 
-    /* Khung Profile Glass chính */
-    .profile-card {
-      position: relative;
-      z-index: 2;
-      width: 100%;
-      max-width: 480px;
-      background: rgba(255, 255, 255, 0.02);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--card-border);
-      border-radius: 32px;
-      padding: 36px 28px;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 20px;
-    }
-
-    /* Avatar & Badge */
     .avatar-wrapper {
       position: relative;
+      width: 110px;
+      height: 110px;
     }
 
-    .avatar {
-      width: 100px;
-      height: 100px;
+    .avatar-img {
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid var(--accent-cyan);
-      box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+      border: 2px solid var(--glass-border);
+      box-shadow: 0 0 20px var(--accent-glow);
     }
 
-    .verified-badge {
-      position: absolute;
-      bottom: 2px;
-      right: 2px;
-      background: #030712;
-      border-radius: 50%;
-      color: var(--accent-cyan);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .avatar-wrapper.float .avatar-img { animation: floatAnim 4s ease-in-out infinite; }
+    .avatar-wrapper.pulse .avatar-img { animation: pulseAnim 2s infinite; }
+    .avatar-wrapper.glow .avatar-img { box-shadow: 0 0 35px var(--accent-color); }
+
+    @keyframes floatAnim {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
     }
 
-    .profile-name {
-      font-size: 1.5rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    @keyframes pulseAnim {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
     }
 
-    .profile-tag {
-      font-size: 0.85rem;
-      color: var(--accent-cyan);
-      font-weight: 600;
-      background: rgba(6, 182, 212, 0.1);
-      padding: 4px 12px;
-      border-radius: 100px;
-      border: 1px solid rgba(6, 182, 212, 0.2);
-    }
+    .profile-info { text-align: center; }
+    .name-badge-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
+    .display-name { font-size: 1.5rem; font-weight: 700; }
+    .badge { font-size: 0.9rem; color: var(--accent-color); }
+    .badge.vip { color: #f59e0b; }
+    .username { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; }
+    .bio { font-size: 0.95rem; white-space: pre-line; line-height: 1.5; opacity: 0.9; }
 
-    .profile-bio {
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      line-height: 1.5;
-      max-width: 360px;
+    .links-list { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    .link-item {
+      width: 100%; padding: 16px; border-radius: var(--radius-btn);
+      display: flex; align-items: center; gap: 14px;
+      text-decoration: none; color: var(--text-main);
+      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
     }
+    .link-item:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.08); border-color: var(--accent-color); }
+    .link-item:active { transform: translateY(0) scale(0.98); }
+    .link-icon-img { width: 24px; height: 24px; object-fit: contain; }
+    .link-text { flex: 1; display: flex; flex-direction: column; }
+    .link-title { font-weight: 600; font-size: 1rem; }
+    .link-desc { font-size: 0.8rem; color: var(--text-muted); }
 
-    /* Icon Mạng Xã Hội */
-    .social-links {
-      display: flex;
-      gap: 14px;
+    .social-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
+    .social-btn {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-main); font-size: 1.2rem; text-decoration: none;
+      transition: transform 0.2s ease, background 0.2s ease;
     }
+    .social-btn:hover { transform: scale(1.1); background: rgba(255, 255, 255, 0.12); color: var(--accent-color); }
 
-    .social-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-main);
-      transition: var(--transition);
+    #click-to-enter {
+      position: fixed; inset: 0; z-index: 999;
+      background: var(--bg-base); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 20px; cursor: pointer;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
     }
+    #click-to-enter.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
-    .social-icon:hover {
-      background: var(--card-hover-bg);
-      border-color: var(--accent-cyan);
-      transform: translateY(-3px);
-      color: var(--accent-cyan);
+    .music-player-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px;
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 100; border: 1px solid var(--glass-border);
+      color: var(--text-main); background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);
     }
+    .music-player-btn.playing i { animation: spin 3s linear infinite; color: var(--accent-color); }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
 
-    /* Trình phát nhạc Widget */
-    .music-widget {
-      width: 100%;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+    footer { margin-top: auto; padding: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
 
-    .music-play-btn {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--accent-cyan);
-      color: #000;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-
-    .music-play-btn:hover {
-      transform: scale(1.08);
-      box-shadow: 0 0 15px rgba(6, 182, 212, 0.5);
-    }
-
-    .music-info {
-      text-align: left;
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .music-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-    }
-
-    .music-artist {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    /* Danh sách Link Cards */
-    .links-list {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    .link-card {
-      width: 100%;
-      padding: 16px 20px;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: var(--radius-md);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      color: var(--text-main);
-      font-size: 0.95rem;
-      font-weight: 600;
-      text-decoration: none;
-      transition: var(--transition);
-    }
-
-    .link-card:hover {
-      background: var(--card-hover-bg);
-      border-color: var(--card-hover-border);
-      transform: translateY(-2px);
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-    }
-
-    .link-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .link-icon {
-      color: var(--accent-cyan);
-    }
-
-    /* Footer nhỏ */
-    .profile-footer {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      margin-top: 10px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .view-count {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    @media (prefers-reduced-motion: reduce) {
+      *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
 <body>
 
-  <div class="noise-bg"></div>
+  <video id="bg-canvas" autoplay loop muted playsinline style="display:none;"></video>
+  <div id="bg-overlay"></div>
 
-  <div class="profile-card">
-    
-    <!-- Avatar -->
+  <div id="click-to-enter" class="hidden">
     <div class="avatar-wrapper">
-      <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300" alt="DIGITALSMOD" class="avatar">
-      <div class="verified-badge">
-        <i data-lucide="check-circle-2" style="width: 20px; height: 20px; fill: rgba(6, 182, 212, 0.2);"></i>
-      </div>
+      <img id="enter-avatar" class="avatar-img" src="" alt="Avatar">
     </div>
-
-    <!-- Thông tin cá nhân -->
-    <div>
-      <h1 class="profile-name">DIGITALSMOD</h1>
-      <span class="profile-tag">Digital Architect & Dev</span>
-    </div>
-
-    <p class="profile-bio">
-      Sáng tạo nội dung, lập trình ứng dụng & phát triển trải nghiệm số Liquid Glass hiện đại.
-    </p>
-
-    <!-- Mạng xã hội -->
-    <div class="social-links">
-      <a href="https://github.com" target="_blank" class="social-icon" aria-label="GitHub"><i data-lucide="github" style="width: 18px;"></i></a>
-      <a href="https://facebook.com" target="_blank" class="social-icon" aria-label="Facebook"><i data-lucide="facebook" style="width: 18px;"></i></a>
-      <a href="https://youtube.com" target="_blank" class="social-icon" aria-label="YouTube"><i data-lucide="youtube" style="width: 18px;"></i></a>
-      <a href="https://telegram.org" target="_blank" class="social-icon" aria-label="Telegram"><i data-lucide="send" style="width: 18px;"></i></a>
-    </div>
-
-    <!-- Trình phát nhạc đại diện -->
-    <div class="music-widget">
-      <button class="music-play-btn" id="play-btn" aria-label="Play Music">
-        <i data-lucide="play" id="play-icon" style="width: 16px;"></i>
-      </button>
-      <div class="music-info">
-        <div class="music-title">Cyber Midnight Ambient</div>
-        <div class="music-artist">DIGITALSMOD Audio</div>
-      </div>
-      <i data-lucide="music" style="width: 18px; color: var(--text-muted);"></i>
-    </div>
-
-    <!-- Danh sách Liên kết cá nhân -->
-    <div class="links-list">
-      <a href="https://quocdat.online" target="_blank" class="link-card">
-        <div class="link-content">
-          <i data-lucide="globe" class="link-icon" style="width: 18px;"></i>
-          <span>Website chính thức</span>
-        </div>
-        <i data-lucide="arrow-up-right" style="width: 16px; color: var(--text-muted);"></i>
-      </a>
-
-      <a href="#projects" class="link-card">
-        <div class="link-content">
-          <i data-lucide="code-2" class="link-icon" style="width: 18px;"></i>
-          <span>Dự án Open Source</span>
-        </div>
-        <i data-lucide="arrow-up-right" style="width: 16px; color: var(--text-muted);"></i>
-      </a>
-
-      <a href="#store" class="link-card">
-        <div class="link-content">
-          <i data-lucide="shopping-bag" class="link-icon" style="width: 18px;"></i>
-          <span>Digital Store & Tools</span>
-        </div>
-        <i data-lucide="arrow-up-right" style="width: 16px; color: var(--text-muted);"></i>
-      </a>
-
-      <a href="#contact" class="link-card">
-        <div class="link-content">
-          <i data-lucide="mail" class="link-icon" style="width: 18px;"></i>
-          <span>Liên hệ công việc</span>
-        </div>
-        <i data-lucide="arrow-up-right" style="width: 16px; color: var(--text-muted);"></i>
-      </a>
-    </div>
-
-    <!-- Footer -->
-    <div class="profile-footer">
-      <div class="view-count">
-        <i data-lucide="eye" style="width: 14px;"></i> 12,850 lượt xem
-      </div>
-      <span>•</span>
-      <span>© 2026 DIGITALSMOD</span>
-    </div>
-
+    <h2 id="enter-name"></h2>
+    <p style="color: var(--text-muted); font-size:0.9rem;">Nhấp vào bất kỳ đâu để truy cập</p>
   </div>
 
-  <script>
-    // Khởi tạo icons
-    lucide.createIcons();
+  <main class="container">
+    <div class="glass-panel" style="width: 100%; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
+      <div id="avatar-container" class="avatar-wrapper">
+        <img id="bio-avatar" class="avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="Profile Avatar">
+      </div>
+      <div class="profile-info" style="margin-top: 16px;">
+        <div class="name-badge-wrap">
+          <h1 id="bio-name" class="display-name"></h1>
+          <span id="bio-badge"></span>
+        </div>
+        <p id="bio-username" class="username"></p>
+        <p id="bio-desc" class="bio"></p>
+      </div>
+      <div id="links-container" class="links-list" style="margin-top: 24px;"></div>
+      <div id="socials-container" class="social-list"></div>
+    </div>
+  </main>
 
-    // Xử lý nút Play nhạc
-    const playBtn = document.getElementById('play-btn');
-    let isPlaying = false;
+  <audio id="bg-music" loop></audio>
+  <button id="music-btn" class="music-player-btn glass-panel" style="display: none;">
+    <i class="fa-solid fa-music"></i>
+  </button>
 
-    playBtn.addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      playBtn.innerHTML = isPlaying 
-        ? '<i data-lucide="pause" style="width: 16px;"></i>' 
-        : '<i data-lucide="play" style="width: 16px;"></i>';
-      lucide.createIcons();
+  <footer id="bio-footer">© 2026 DIGITALSMOD</footer>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
+    import { getDatabase, ref, get, child, update, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Cấu hình Firebase thực tế của bạn
+    const firebaseConfig = {
+      apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
+      authDomain: "taikhoan-fc704.firebaseapp.com",
+      databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "taikhoan-fc704",
+      storageBucket: "taikhoan-fc704.firebasestorage.app",
+      messagingSenderId: "867203109533",
+      appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74",
+      measurementId: "G-PQDSS2N5XE"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+
+    function sanitizeHTML(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
+    function sanitizeURL(url) {
+      if (!url) return '#';
+      const clean = String(url).trim();
+      return (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('mailto:') || clean.startsWith('tel:')) ? clean : '#';
+    }
+
+    let bgAudio = document.getElementById('bg-music');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const usernameQuery = urlParams.get('u');
+
+      if (!usernameQuery) {
+        document.body.innerHTML = `<h2 style="text-align:center;margin-top:20%;color:#fff;">Vui lòng chỉ định username (?u=username)</h2>`;
+        return;
+      }
+
+      try {
+        const dbRef = ref(db);
+        const uSnap = await get(child(dbRef, `usernames/${usernameQuery.toLowerCase()}`));
+        if (!uSnap.exists()) {
+          document.body.innerHTML = `<div style="text-align:center;margin-top:20%;color:#fff;"><h2>Profile Not Found</h2><br><a href="index.html" style="color:var(--accent-color);">Quay lại</a></div>`;
+          return;
+        }
+
+        const uid = uSnap.val().uid;
+
+        const pSnap = await get(child(dbRef, `profiles/${uid}`));
+        const lSnap = await get(child(dbRef, `links/${uid}`));
+        const sSnap = await get(child(dbRef, `socials/${uid}`));
+        const setSnap = await get(child(dbRef, `settings/${uid}`));
+
+        if (pSnap.exists()) renderProfile(pSnap.val());
+        if (lSnap.exists()) renderLinks(lSnap.val(), uid);
+        if (sSnap.exists()) renderSocials(sSnap.val());
+        if (setSnap.exists()) applySettings(setSnap.val());
+
+        update(ref(db, `analytics/${uid}`), { views: increment(1) });
+
+      } catch (err) {
+        console.error("Error loading profile:", err);
+      }
     });
+
+    function renderProfile(profile) {
+      document.title = `${sanitizeHTML(profile.name)} (@${sanitizeHTML(profile.username)})`;
+      document.getElementById('bio-name').innerText = profile.name || '';
+      document.getElementById('bio-username').innerText = `@${profile.username || ''}`;
+      document.getElementById('bio-desc').innerText = profile.bio || '';
+
+      const avatarImg = document.getElementById('bio-avatar');
+      avatarImg.src = profile.avatar ? sanitizeURL(profile.avatar) : 'https://via.placeholder.com/150';
+
+      const avatarContainer = document.getElementById('avatar-container');
+      if (profile.avatarAnim) avatarContainer.classList.add(profile.avatarAnim);
+
+      const badgeEl = document.getElementById('bio-badge');
+      if (profile.badge === 'verified') badgeEl.innerHTML = `<i class="fa-solid fa-circle-check badge" title="Verified"></i>`;
+      else if (profile.badge === 'vip') badgeEl.innerHTML = `<i class="fa-solid fa-crown badge vip" title="VIP"></i>`;
+      else if (profile.badge === 'admin') badgeEl.innerHTML = `<i class="fa-solid fa-user-shield badge" title="Admin"></i>`;
+
+      if (profile.bgType === 'image') {
+        document.body.style.backgroundImage = `url('${sanitizeURL(profile.bgValue)}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+      } else if (profile.bgType === 'video') {
+        const vid = document.getElementById('bg-canvas');
+        vid.src = sanitizeURL(profile.bgValue);
+        vid.style.display = 'block';
+      } else if (profile.bgValue) {
+        document.body.style.background = profile.bgValue;
+      }
+
+      if (profile.accentColor) {
+        document.documentElement.style.setProperty('--accent-color', profile.accentColor);
+        document.documentElement.style.setProperty('--accent-glow', profile.accentColor + '66');
+      }
+
+      if (profile.clickToEnter) {
+        const cte = document.getElementById('click-to-enter');
+        document.getElementById('enter-avatar').src = avatarImg.src;
+        document.getElementById('enter-name').innerText = profile.name;
+        cte.classList.remove('hidden');
+
+        cte.addEventListener('click', () => {
+          cte.classList.add('hidden');
+          if (profile.musicUrl) playAudio(profile.musicUrl);
+        });
+      } else if (profile.musicUrl) {
+        playAudio(profile.musicUrl);
+      }
+    }
+
+    function renderLinks(linksObj, uid) {
+      const container = document.getElementById('links-container');
+      container.innerHTML = '';
+      
+      const linksArray = Object.keys(linksObj).map(k => ({ id: k, ...linksObj[k] }));
+      linksArray.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+      linksArray.forEach(link => {
+        if (!link.enabled) return;
+
+        const a = document.createElement('a');
+        a.className = 'link-item glass-panel';
+        a.href = sanitizeURL(link.url);
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+
+        let iconHTML = link.icon ? `<i class="${sanitizeHTML(link.icon)}"></i>` : `<i class="fa-solid fa-link"></i>`;
+        if (link.image) iconHTML = `<img src="${sanitizeURL(link.image)}" class="link-icon-img" alt="icon">`;
+
+        a.innerHTML = `
+          <div style="font-size:1.2rem; display:flex; align-items:center;">${iconHTML}</div>
+          <div class="link-text">
+            <span class="link-title">${sanitizeHTML(link.title)}</span>
+            ${link.description ? `<span class="link-desc">${sanitizeHTML(link.description)}</span>` : ''}
+          </div>
+          <i class="fa-solid fa-chevron-right" style="font-size:0.8rem; opacity:0.5;"></i>
+        `;
+
+        a.addEventListener('click', () => {
+          update(ref(db, `analytics/${uid}`), { clicks: increment(1) });
+        });
+
+        container.appendChild(a);
+      });
+    }
+
+    function renderSocials(socialsObj) {
+      const container = document.getElementById('socials-container');
+      container.innerHTML = '';
+
+      const platforms = {
+        facebook: 'fa-brands fa-facebook-f', tiktok: 'fa-brands fa-tiktok',
+        youtube: 'fa-brands fa-youtube', instagram: 'fa-brands fa-instagram',
+        discord: 'fa-brands fa-discord', telegram: 'fa-brands fa-telegram',
+        github: 'fa-brands fa-github', x: 'fa-brands fa-x-twitter', email: 'fa-solid fa-envelope'
+      };
+
+      Object.keys(socialsObj).forEach(key => {
+        const soc = socialsObj[key];
+        if (soc.enabled && soc.url) {
+          const a = document.createElement('a');
+          a.className = 'social-btn glass-panel';
+          a.href = key === 'email' ? `mailto:${sanitizeHTML(soc.url)}` : sanitizeURL(soc.url);
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          a.innerHTML = `<i class="${platforms[key] || 'fa-solid fa-globe'}"></i>`;
+          container.appendChild(a);
+        }
+      });
+    }
+
+    function applySettings(settings) {
+      if (settings.showFooter === false) {
+        document.getElementById('bio-footer').style.display = 'none';
+      }
+    }
+
+    function playAudio(url) {
+      bgAudio.src = sanitizeURL(url);
+      const btn = document.getElementById('music-btn');
+      btn.style.display = 'flex';
+
+      const playPromise = bgAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => btn.classList.add('playing'))
+          .catch(() => btn.classList.remove('playing'));
+      }
+
+      btn.addEventListener('click', () => {
+        if (bgAudio.paused) {
+          bgAudio.play();
+          btn.classList.add('playing');
+        } else {
+          bgAudio.pause();
+          btn.classList.remove('playing');
+        }
+      });
+    }
   </script>
 </body>
 </html>
