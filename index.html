@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bio Link</title>
+  <title>Personal Bio</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
@@ -18,16 +18,9 @@
       --radius-card: 24px;
       --radius-btn: 16px;
       --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      --card-opacity: 0.03;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: var(--font-family);
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); -webkit-tap-highlight-color: transparent; }
 
     body {
       background-color: var(--bg-base);
@@ -42,7 +35,7 @@
     }
 
     .glass-panel {
-      background: rgba(255, 255, 255, var(--card-opacity));
+      background: rgba(255, 255, 255, 0.03);
       backdrop-filter: var(--glass-blur);
       -webkit-backdrop-filter: var(--glass-blur);
       border: 1px solid var(--glass-border);
@@ -50,75 +43,27 @@
       box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
     }
 
-    #bg-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: -2;
-      object-fit: cover;
-    }
+    #bg-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -2; object-fit: cover; }
+    #bg-overlay { position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 50% 30%, var(--accent-glow) 0%, transparent 70%); pointer-events: none; }
 
-    #bg-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: -1;
-      background: radial-gradient(circle at 50% 30%, var(--accent-glow) 0%, transparent 70%);
-      pointer-events: none;
-    }
+    .container { width: 100%; max-width: 480px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 24px; z-index: 1; }
 
-    .container {
-      width: 100%;
-      max-width: 480px;
-      padding: 24px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      z-index: 1;
-    }
-
-    .avatar-wrapper {
-      position: relative;
-      width: 110px;
-      height: 110px;
-    }
-
-    .avatar-img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--glass-border);
-      box-shadow: 0 0 20px var(--accent-glow);
-    }
+    .avatar-wrapper { position: relative; width: 110px; height: 110px; }
+    .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--glass-border); box-shadow: 0 0 20px var(--accent-glow); }
 
     .avatar-wrapper.float .avatar-img { animation: floatAnim 4s ease-in-out infinite; }
     .avatar-wrapper.pulse .avatar-img { animation: pulseAnim 2s infinite; }
     .avatar-wrapper.glow .avatar-img { box-shadow: 0 0 35px var(--accent-color); }
 
-    @keyframes floatAnim {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-
-    @keyframes pulseAnim {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.04); }
-      100% { transform: scale(1); }
-    }
+    @keyframes floatAnim { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    @keyframes pulseAnim { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
 
     .profile-info { text-align: center; }
     .name-badge-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
     .display-name { font-size: 1.5rem; font-weight: 700; }
     .badge { font-size: 0.9rem; color: var(--accent-color); }
     .badge.vip { color: #f59e0b; }
-    .username { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px; }
-    .bio { font-size: 0.95rem; white-space: pre-line; line-height: 1.5; opacity: 0.9; }
+    .bio { font-size: 0.95rem; white-space: pre-line; line-height: 1.5; opacity: 0.9; margin-top: 8px; }
 
     .links-list { width: 100%; display: flex; flex-direction: column; gap: 14px; }
     .link-item {
@@ -129,7 +74,6 @@
     }
     .link-item:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.08); border-color: var(--accent-color); }
     .link-item:active { transform: translateY(0) scale(0.98); }
-    .link-icon-img { width: 24px; height: 24px; object-fit: contain; }
     .link-text { flex: 1; display: flex; flex-direction: column; }
     .link-title { font-weight: 600; font-size: 1rem; }
     .link-desc { font-size: 0.8rem; color: var(--text-muted); }
@@ -161,10 +105,6 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
 
     footer { margin-top: auto; padding: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, ::before, ::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-    }
   </style>
 </head>
 <body>
@@ -183,14 +123,13 @@
   <main class="container">
     <div class="glass-panel" style="width: 100%; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
       <div id="avatar-container" class="avatar-wrapper">
-        <img id="bio-avatar" class="avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="Profile Avatar">
+        <img id="bio-avatar" class="avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="Avatar">
       </div>
       <div class="profile-info" style="margin-top: 16px;">
         <div class="name-badge-wrap">
           <h1 id="bio-name" class="display-name"></h1>
           <span id="bio-badge"></span>
         </div>
-        <p id="bio-username" class="username"></p>
         <p id="bio-desc" class="bio"></p>
       </div>
       <div id="links-container" class="links-list" style="margin-top: 24px;"></div>
@@ -207,10 +146,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
     import { getDatabase, ref, get, child, update, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Cấu hình Firebase thực tế của bạn
     const firebaseConfig = {
       apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
       authDomain: "taikhoan-fc704.firebaseapp.com",
@@ -223,8 +160,8 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
     const db = getDatabase(app);
+    const KEY = "my_bio";
 
     function sanitizeHTML(str) {
       if (!str) return '';
@@ -240,45 +177,25 @@
     let bgAudio = document.getElementById('bg-music');
 
     document.addEventListener('DOMContentLoaded', async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const usernameQuery = urlParams.get('u');
-
-      if (!usernameQuery) {
-        document.body.innerHTML = `<h2 style="text-align:center;margin-top:20%;color:#fff;">Vui lòng chỉ định username (?u=username)</h2>`;
-        return;
-      }
-
       try {
         const dbRef = ref(db);
-        const uSnap = await get(child(dbRef, `usernames/${usernameQuery.toLowerCase()}`));
-        if (!uSnap.exists()) {
-          document.body.innerHTML = `<div style="text-align:center;margin-top:20%;color:#fff;"><h2>Profile Not Found</h2><br><a href="index.html" style="color:var(--accent-color);">Quay lại</a></div>`;
-          return;
-        }
-
-        const uid = uSnap.val().uid;
-
-        const pSnap = await get(child(dbRef, `profiles/${uid}`));
-        const lSnap = await get(child(dbRef, `links/${uid}`));
-        const sSnap = await get(child(dbRef, `socials/${uid}`));
-        const setSnap = await get(child(dbRef, `settings/${uid}`));
+        const pSnap = await get(child(dbRef, `profiles/${KEY}`));
+        const lSnap = await get(child(dbRef, `links/${KEY}`));
+        const sSnap = await get(child(dbRef, `socials/${KEY}`));
 
         if (pSnap.exists()) renderProfile(pSnap.val());
-        if (lSnap.exists()) renderLinks(lSnap.val(), uid);
+        if (lSnap.exists()) renderLinks(lSnap.val());
         if (sSnap.exists()) renderSocials(sSnap.val());
-        if (setSnap.exists()) applySettings(setSnap.val());
 
-        update(ref(db, `analytics/${uid}`), { views: increment(1) });
-
+        update(ref(db, `analytics/${KEY}`), { views: increment(1) });
       } catch (err) {
-        console.error("Error loading profile:", err);
+        console.error("Lỗi đọc dữ liệu:", err);
       }
     });
 
     function renderProfile(profile) {
-      document.title = `${sanitizeHTML(profile.name)} (@${sanitizeHTML(profile.username)})`;
+      document.title = sanitizeHTML(profile.name) || "Bio";
       document.getElementById('bio-name').innerText = profile.name || '';
-      document.getElementById('bio-username').innerText = `@${profile.username || ''}`;
       document.getElementById('bio-desc').innerText = profile.bio || '';
 
       const avatarImg = document.getElementById('bio-avatar');
@@ -324,7 +241,7 @@
       }
     }
 
-    function renderLinks(linksObj, uid) {
+    function renderLinks(linksObj) {
       const container = document.getElementById('links-container');
       container.innerHTML = '';
       
@@ -341,7 +258,6 @@
         a.rel = 'noopener noreferrer';
 
         let iconHTML = link.icon ? `<i class="${sanitizeHTML(link.icon)}"></i>` : `<i class="fa-solid fa-link"></i>`;
-        if (link.image) iconHTML = `<img src="${sanitizeURL(link.image)}" class="link-icon-img" alt="icon">`;
 
         a.innerHTML = `
           <div style="font-size:1.2rem; display:flex; align-items:center;">${iconHTML}</div>
@@ -353,7 +269,7 @@
         `;
 
         a.addEventListener('click', () => {
-          update(ref(db, `analytics/${uid}`), { clicks: increment(1) });
+          update(ref(db, `analytics/${KEY}`), { clicks: increment(1) });
         });
 
         container.appendChild(a);
@@ -383,12 +299,6 @@
           container.appendChild(a);
         }
       });
-    }
-
-    function applySettings(settings) {
-      if (settings.showFooter === false) {
-        document.getElementById('bio-footer').style.display = 'none';
-      }
     }
 
     function playAudio(url) {
