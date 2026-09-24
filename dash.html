@@ -49,8 +49,6 @@
     .nav-btn { background: transparent; border: none; color: var(--text-muted); padding: 12px; text-align: left; cursor: pointer; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
     .nav-btn.active, .nav-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
     .card-list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border: 1px solid var(--glass-border); border-radius: 8px; margin-bottom: 8px; background: rgba(255,255,255,0.02); }
-    
-    #auth-overlay { position: fixed; inset: 0; background: #0a0a0c; z-index: 1000; display: flex; align-items: center; justify-content: center; }
 
     @media (max-width: 1024px) {
       .preview-pane { display: none; }
@@ -61,24 +59,6 @@
 </head>
 <body>
 
-  <!-- Auth Screen -->
-  <div id="auth-overlay">
-    <div class="glass-panel" style="width: 340px; padding: 24px;">
-      <h2 style="margin-bottom: 16px;">Đăng nhập Admin</h2>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="login-email" placeholder="admin@example.com">
-      </div>
-      <div class="form-group">
-        <label>Mật khẩu</label>
-        <input type="password" id="login-password" placeholder="••••••••">
-      </div>
-      <button id="btn-login" class="btn-primary" style="width: 100%;">Đăng nhập</button>
-      <p id="login-error" style="color:#ef4444; font-size:0.8rem; margin-top:8px;"></p>
-    </div>
-  </div>
-
-  <!-- Admin Application -->
   <div class="admin-wrapper">
     <aside class="sidebar glass-panel">
       <h3>Control Panel</h3>
@@ -89,7 +69,6 @@
         <button class="nav-btn" onclick="switchTab('socials')"><i class="fa-solid fa-share-nodes"></i> Mạng xã hội</button>
         <button class="nav-btn" onclick="switchTab('appearance')"><i class="fa-solid fa-wand-magic-sparkles"></i> Giao diện</button>
       </nav>
-      <button id="btn-logout" class="nav-btn" style="margin-top:auto; color:#ef4444;"><i class="fa-solid fa-right-from-bracket"></i> Đăng xuất</button>
     </aside>
 
     <main class="main-editor">
@@ -111,7 +90,7 @@
         <h2>Thông tin Cá nhân</h2>
         <div class="form-group" style="margin-top:16px;">
           <label>Username (URL Identification)</label>
-          <input type="text" id="edit-username">
+          <input type="text" id="edit-username" placeholder="quocdat">
         </div>
         <div class="form-group">
           <label>Tên hiển thị</label>
@@ -122,8 +101,8 @@
           <textarea id="edit-bio" rows="3"></textarea>
         </div>
         <div class="form-group">
-          <label>Avatar</label>
-          <input type="file" id="edit-avatar-file" accept="image/*">
+          <label>Avatar URL</label>
+          <input type="text" id="edit-avatar-url" placeholder="https://example.com/avatar.png">
         </div>
         <div class="form-group">
           <label>Huy hiệu Badge</label>
@@ -218,11 +197,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getDatabase, ref, set, get, child, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-    import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // Cấu hình Firebase thực tế của bạn
     const firebaseConfig = {
       apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
       authDomain: "taikhoan-fc704.firebaseapp.com",
@@ -235,51 +211,18 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
     const db = getDatabase(app);
-    const storage = getStorage(app);
+
+    // Sử dụng Node UID cố định không cần xác thực
+    const currentUID = "public_bio";
+    let profileData = {};
+    let linksData = {};
+    let socialsData = {};
 
     function sanitizeHTML(str) {
       if (!str) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
-
-    let currentUID = null;
-    let profileData = {};
-    let linksData = {};
-    let socialsData = {};
-
-    onAuthStateChanged(auth, async (user) => {
-      const authOverlay = document.getElementById('auth-overlay');
-      if (user) {
-        const rSnap = await get(child(ref(db), `users/${user.uid}`));
-        if (rSnap.exists() && rSnap.val().role === 'admin') {
-          currentUID = user.uid;
-          authOverlay.style.display = 'none';
-          initAdminData();
-        } else {
-          alert("Tài khoản chưa được cấp quyền role: 'admin' trong Database!");
-          signOut(auth);
-        }
-      } else {
-        authOverlay.style.display = 'flex';
-      }
-    });
-
-    document.getElementById('btn-login').addEventListener('click', async () => {
-      const email = document.getElementById('login-email').value;
-      const pass = document.getElementById('login-password').value;
-      const errEl = document.getElementById('login-error');
-      errEl.innerText = '';
-
-      try {
-        await signInWithEmailAndPassword(auth, email, pass);
-      } catch (err) {
-        errEl.innerText = 'Đăng nhập thất bại: ' + err.message;
-      }
-    });
-
-    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
     window.switchTab = function(tabName) {
       document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
@@ -331,21 +274,14 @@
       const bio = document.getElementById('edit-bio').value;
       const badge = document.getElementById('edit-badge').value;
       const avatarAnim = document.getElementById('edit-avatar-anim').value;
-      const fileInput = document.getElementById('edit-avatar-file');
-
-      let avatarUrl = profileData.avatar || '';
-
-      if (fileInput.files[0]) {
-        const file = fileInput.files[0];
-        const imgRef = sRef(storage, `avatars/${currentUID}_${Date.now()}`);
-        await uploadBytes(imgRef, file);
-        avatarUrl = await getDownloadURL(imgRef);
-      }
+      const avatarUrl = document.getElementById('edit-avatar-url').value.trim();
 
       if (profileData.username && profileData.username !== username) {
         await remove(ref(db, `usernames/${profileData.username}`));
       }
-      await set(ref(db, `usernames/${username}`), { uid: currentUID });
+      if (username) {
+        await set(ref(db, `usernames/${username}`), { uid: currentUID });
+      }
 
       const payload = { ...profileData, username, name, bio, badge, avatarAnim, avatar: avatarUrl };
       await set(ref(db, `profiles/${currentUID}`), payload);
@@ -356,6 +292,7 @@
       document.getElementById('edit-username').value = data.username || '';
       document.getElementById('edit-name').value = data.name || '';
       document.getElementById('edit-bio').value = data.bio || '';
+      document.getElementById('edit-avatar-url').value = data.avatar || '';
       document.getElementById('edit-badge').value = data.badge || 'none';
       document.getElementById('edit-avatar-anim').value = data.avatarAnim || '';
       document.getElementById('edit-accent').value = data.accentColor || '#8b5cf6';
@@ -485,6 +422,9 @@
       });
       alert('Đã lưu Giao diện!');
     });
+
+    // Tự động tải dữ liệu khi mở trang
+    initAdminData();
   </script>
 </body>
 </html>
