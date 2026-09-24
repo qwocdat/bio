@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Dashboard - Bio Link</title>
+  <title>Admin Dashboard</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <style>
     :root {
@@ -72,6 +72,7 @@
     </aside>
 
     <main class="main-editor">
+
       <section id="tab-dashboard">
         <h2>Tổng quan Thống kê</h2>
         <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:16px; margin-top:20px;">
@@ -89,20 +90,16 @@
       <section id="tab-profile" style="display:none;">
         <h2>Thông tin Cá nhân</h2>
         <div class="form-group" style="margin-top:16px;">
-          <label>Username (URL Identification)</label>
-          <input type="text" id="edit-username" placeholder="quocdat">
-        </div>
-        <div class="form-group">
           <label>Tên hiển thị</label>
-          <input type="text" id="edit-name">
+          <input type="text" id="edit-name" placeholder="Quốc Đạt">
         </div>
         <div class="form-group">
           <label>Bio (Giới thiệu)</label>
-          <textarea id="edit-bio" rows="3"></textarea>
+          <textarea id="edit-bio" rows="3" placeholder="Giới thiệu bản thân..."></textarea>
         </div>
         <div class="form-group">
           <label>Avatar URL</label>
-          <input type="text" id="edit-avatar-url" placeholder="https://example.com/avatar.png">
+          <input type="text" id="edit-avatar-url" placeholder="https://i.imgur.com/example.png">
         </div>
         <div class="form-group">
           <label>Huy hiệu Badge</label>
@@ -122,7 +119,7 @@
             <option value="glow">Glow (Phát sáng)</option>
           </select>
         </div>
-        <button id="btn-save-profile" class="btn-primary">Lưu Cá Nhân</button>
+        <button id="btn-save-profile" class="btn-primary" style="width:100%; padding:14px;">LƯU THÔNG TIN CÁ NHÂN</button>
       </section>
 
       <section id="tab-links" style="display:none;">
@@ -161,7 +158,7 @@
         <h2>Giao diện & Nhạc nền</h2>
         <div class="form-group" style="margin-top:16px;">
           <label>Màu Accent (Chủ đạo)</label>
-          <input type="color" id="edit-accent" style="height:40px;">
+          <input type="color" id="edit-accent" value="#8b5cf6" style="height:40px;">
         </div>
         <div class="form-group">
           <label>Loại Background</label>
@@ -173,7 +170,7 @@
         </div>
         <div class="form-group">
           <label>Giá trị Background (Màu, Gradient hoặc URL Media)</label>
-          <input type="text" id="edit-bg-value" placeholder="linear-gradient(135deg, #111, #222) hoặc URL">
+          <input type="text" id="edit-bg-value" placeholder="radial-gradient(circle at 50% 30%, #2e1065 0%, #0a0a0c 100%)">
         </div>
         <div class="form-group">
           <label>Nhạc nền Audio URL (MP3)</label>
@@ -190,7 +187,7 @@
     <aside class="preview-pane">
       <h3>Live Preview</h3>
       <div class="phone-mockup">
-        <iframe id="preview-iframe" src="about:blank" style="width:100%; height:100%; border:none;"></iframe>
+        <iframe id="preview-iframe" src="index.html" style="width:100%; height:100%; border:none;"></iframe>
       </div>
     </aside>
   </div>
@@ -213,8 +210,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Sử dụng Node UID cố định không cần xác thực
-    const currentUID = "public_bio";
+    const KEY = "my_bio";
     let profileData = {};
     let linksData = {};
     let socialsData = {};
@@ -234,27 +230,27 @@
     function initAdminData() {
       const dbRef = ref(db);
 
-      onValue(child(dbRef, `profiles/${currentUID}`), (snap) => {
+      onValue(child(dbRef, `profiles/${KEY}`), (snap) => {
         if (snap.exists()) {
           profileData = snap.val();
           populateProfileForm(profileData);
-          updatePreview();
+          refreshPreview();
         }
       });
 
-      onValue(child(dbRef, `links/${currentUID}`), (snap) => {
+      onValue(child(dbRef, `links/${KEY}`), (snap) => {
         linksData = snap.exists() ? snap.val() : {};
         renderAdminLinks(linksData);
-        updatePreview();
+        refreshPreview();
       });
 
-      onValue(child(dbRef, `socials/${currentUID}`), (snap) => {
+      onValue(child(dbRef, `socials/${KEY}`), (snap) => {
         socialsData = snap.exists() ? snap.val() : {};
         renderAdminSocials(socialsData);
-        updatePreview();
+        refreshPreview();
       });
 
-      onValue(child(dbRef, `analytics/${currentUID}`), (snap) => {
+      onValue(child(dbRef, `analytics/${KEY}`), (snap) => {
         if (snap.exists()) {
           document.getElementById('stat-views').innerText = snap.val().views || 0;
           document.getElementById('stat-clicks').innerText = snap.val().clicks || 0;
@@ -262,34 +258,28 @@
       });
     }
 
-    function updatePreview() {
-      if (profileData.username) {
-        document.getElementById('preview-iframe').src = `index.html?u=${profileData.username}&preview=true`;
-      }
+    function refreshPreview() {
+      const iframe = document.getElementById('preview-iframe');
+      iframe.src = 'index.html?r=' + Date.now();
     }
 
     document.getElementById('btn-save-profile').addEventListener('click', async () => {
-      const username = document.getElementById('edit-username').value.trim().toLowerCase();
-      const name = document.getElementById('edit-name').value;
+      const name = document.getElementById('edit-name').value.trim();
       const bio = document.getElementById('edit-bio').value;
       const badge = document.getElementById('edit-badge').value;
       const avatarAnim = document.getElementById('edit-avatar-anim').value;
       const avatarUrl = document.getElementById('edit-avatar-url').value.trim();
 
-      if (profileData.username && profileData.username !== username) {
-        await remove(ref(db, `usernames/${profileData.username}`));
+      try {
+        const payload = { ...profileData, name, bio, badge, avatarAnim, avatar: avatarUrl };
+        await set(ref(db, `profiles/${KEY}`), payload);
+        alert('Lưu thông tin cá nhân thành công!');
+      } catch (err) {
+        alert('Lỗi khi lưu: ' + err.message);
       }
-      if (username) {
-        await set(ref(db, `usernames/${username}`), { uid: currentUID });
-      }
-
-      const payload = { ...profileData, username, name, bio, badge, avatarAnim, avatar: avatarUrl };
-      await set(ref(db, `profiles/${currentUID}`), payload);
-      alert('Đã cập nhật Profile!');
     });
 
     function populateProfileForm(data) {
-      document.getElementById('edit-username').value = data.username || '';
       document.getElementById('edit-name').value = data.name || '';
       document.getElementById('edit-bio').value = data.bio || '';
       document.getElementById('edit-avatar-url').value = data.avatar || '';
@@ -314,12 +304,17 @@
         order: linksData[id] ? linksData[id].order : Object.keys(linksData).length
       };
 
-      await set(ref(db, `links/${currentUID}/${id}`), payload);
-      document.getElementById('link-id-hidden').value = '';
-      document.getElementById('link-title').value = '';
-      document.getElementById('link-url').value = '';
-      document.getElementById('link-desc').value = '';
-      document.getElementById('link-icon').value = '';
+      try {
+        await set(ref(db, `links/${KEY}/${id}`), payload);
+        document.getElementById('link-id-hidden').value = '';
+        document.getElementById('link-title').value = '';
+        document.getElementById('link-url').value = '';
+        document.getElementById('link-desc').value = '';
+        document.getElementById('link-icon').value = '';
+        alert('Đã lưu Link!');
+      } catch (err) {
+        alert('Lỗi lưu link: ' + err.message);
+      }
     });
 
     function renderAdminLinks(linksObj) {
@@ -332,11 +327,9 @@
       linksArray.forEach(item => {
         const card = document.createElement('div');
         card.className = 'card-list-item';
-        card.draggable = true;
 
         card.innerHTML = `
           <div>
-            <i class="fa-solid fa-grip-vertical" style="cursor:grab; margin-right:8px;"></i>
             <strong>${sanitizeHTML(item.title)}</strong>
             <p style="font-size:0.8rem; color:var(--text-muted);">${sanitizeHTML(item.url)}</p>
           </div>
@@ -345,20 +338,6 @@
             <button onclick="deleteLink('${item.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;"><i class="fa-solid fa-trash"></i></button>
           </div>
         `;
-
-        card.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', item.id));
-        card.addEventListener('dragover', (e) => e.preventDefault());
-        card.addEventListener('drop', async (e) => {
-          e.preventDefault();
-          const draggedId = e.dataTransfer.getData('text/plain');
-          if (draggedId !== item.id) {
-            const order1 = linksData[draggedId].order;
-            const order2 = linksData[item.id].order;
-            await update(ref(db, `links/${currentUID}/${draggedId}`), { order: order2 });
-            await update(ref(db, `links/${currentUID}/${item.id}`), { order: order1 });
-          }
-        });
-
         container.appendChild(card);
       });
     }
@@ -374,7 +353,7 @@
 
     window.deleteLink = async function(id) {
       if (confirm('Xóa link này?')) {
-        await remove(ref(db, `links/${currentUID}/${id}`));
+        await remove(ref(db, `links/${KEY}/${id}`));
       }
     };
 
@@ -408,12 +387,12 @@
           url: document.getElementById(`soc-url-${p}`).value.trim()
         };
       });
-      await set(ref(db, `socials/${currentUID}`), payload);
+      await set(ref(db, `socials/${KEY}`), payload);
       alert('Đã lưu Mạng xã hội!');
     });
 
     document.getElementById('btn-save-appearance').addEventListener('click', async () => {
-      await update(ref(db, `profiles/${currentUID}`), {
+      await update(ref(db, `profiles/${KEY}`), {
         accentColor: document.getElementById('edit-accent').value,
         bgType: document.getElementById('edit-bg-type').value,
         bgValue: document.getElementById('edit-bg-value').value,
@@ -423,7 +402,6 @@
       alert('Đã lưu Giao diện!');
     });
 
-    // Tự động tải dữ liệu khi mở trang
     initAdminData();
   </script>
 </body>
