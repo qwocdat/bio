@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard — Firebase</title>
+
+<!-- Nạp Firebase SDK Compat -->
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
 <style>
   body { background: #0a0b10; color: #eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
   input, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: #161822; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
@@ -13,73 +18,6 @@
   .link-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
   .del-btn { width: auto; padding: 6px 12px; background: #e53935; margin: 0; font-size: 0.75rem; }
 </style>
-
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
-    authDomain: "taikhoan-fc704.firebaseapp.com",
-    databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "taikhoan-fc704",
-    storageBucket: "taikhoan-fc704.firebasestorage.app",
-    messagingSenderId: "867203109533",
-    appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const linksRef = ref(db, 'links');
-
-  document.getElementById('addBtn').onclick = function() {
-    const title = document.getElementById('title').value.trim();
-    const subtitle = document.getElementById('subtitle').value.trim();
-    const url = document.getElementById('url').value.trim();
-    const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
-
-    if (!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
-
-    push(linksRef, { title, subtitle, url, sort_order })
-      .then(() => {
-        alert('Đã thêm nút bấm thành công!');
-        document.getElementById('title').value = '';
-        document.getElementById('subtitle').value = '';
-        document.getElementById('url').value = '';
-      })
-      .catch((err) => alert('Lỗi: ' + err.message));
-  };
-
-  onValue(linksRef, (snapshot) => {
-    const data = snapshot.val();
-    const container = document.getElementById('admin-links-list');
-    container.innerHTML = '';
-
-    if (!data) {
-      container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>';
-      return;
-    }
-
-    Object.keys(data).forEach(id => {
-      const item = data[id];
-      const div = document.createElement('div');
-      div.className = 'link-item';
-      div.innerHTML = `
-        <div>
-          <strong>${item.title}</strong><br>
-          <small style="color:#aaa">${item.url}</small>
-        </div>
-        <button class="del-btn">Xóa</button>
-      `;
-      div.querySelector('.del-btn').onclick = () => {
-        if (confirm('Xóa nút này?')) {
-          remove(ref(db, `links/${id}`));
-        }
-      };
-      container.appendChild(div);
-    });
-  });
-</script>
 </head>
 <body>
 
@@ -99,5 +37,67 @@
   <div id="admin-links-list">Đang tải...</div>
 </div>
 
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
+  authDomain: "taikhoan-fc704.firebaseapp.com",
+  databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "taikhoan-fc704",
+  storageBucket: "taikhoan-fc704.firebasestorage.app",
+  messagingSenderId: "867203109533",
+  appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+document.getElementById('addBtn').onclick = function() {
+  const title = document.getElementById('title').value.trim();
+  const subtitle = document.getElementById('subtitle').value.trim();
+  const url = document.getElementById('url').value.trim();
+  const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
+
+  if (!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
+
+  db.ref('links').push({ title, subtitle, url, sort_order })
+    .then(() => {
+      alert('Thêm nút mới thành công!');
+      document.getElementById('title').value = '';
+      document.getElementById('subtitle').value = '';
+      document.getElementById('url').value = '';
+    })
+    .catch((err) => alert('Lỗi: ' + err.message));
+};
+
+db.ref('links').on('value', (snapshot) => {
+  const data = snapshot.val();
+  const container = document.getElementById('admin-links-list');
+  container.innerHTML = '';
+
+  if (!data) {
+    container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>';
+    return;
+  }
+
+  Object.keys(data).forEach(id => {
+    const item = data[id];
+    const div = document.createElement('div');
+    div.className = 'link-item';
+    div.innerHTML = `
+      <div>
+        <strong>${item.title}</strong><br>
+        <small style="color:#aaa">${item.url}</small>
+      </div>
+      <button class="del-btn">Xóa</button>
+    `;
+    div.querySelector('.del-btn').onclick = () => {
+      if (confirm('Bạn có chắc chắn muốn xóa nút này?')) {
+        db.ref(`links/${id}`).remove();
+      }
+    };
+    container.appendChild(div);
+  });
+});
+</script>
 </body>
 </html>
