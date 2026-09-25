@@ -32,7 +32,6 @@
   const db = getDatabase(app);
   const linksRef = ref(db, 'links');
 
-  // Thêm nút mới
   document.getElementById('addBtn').onclick = function() {
     const title = document.getElementById('title').value.trim();
     const subtitle = document.getElementById('subtitle').value.trim();
@@ -51,14 +50,13 @@
       .catch((err) => alert('Lỗi: ' + err.message));
   };
 
-  // Load danh sách và Xóa
   onValue(linksRef, (snapshot) => {
     const data = snapshot.val();
     const container = document.getElementById('admin-links-list');
     container.innerHTML = '';
 
     if (!data) {
-      container.innerHTML = '<small>Chưa có dữ liệu</small>';
+      container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>';
       return;
     }
 
