@@ -1,327 +1,358 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Personal Bio</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    :root {
-      --bg-base: #0a0a0c;
-      --accent-color: #8b5cf6;
-      --accent-glow: rgba(139, 92, 246, 0.4);
-      --glass-bg: rgba(255, 255, 255, 0.03);
-      --glass-border: rgba(255, 255, 255, 0.08);
-      --glass-blur: blur(20px);
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --radius-card: 24px;
-      --radius-btn: 16px;
-      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DIGITALSMOD BIO — quocdat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- Nhập thêm phông Minecraft (Press Start 2P) -->
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  --bg:#eef1f6; --bg2:#e4e9f2;
+  --glass-bg:rgba(255,255,255,0.55); --glass-border:rgba(255,255,255,0.65);
+  --glass-blur:22px; --glass-sat:150%; --glass-shadow:0 8px 32px rgba(30,40,70,0.14);
+  --tint:255,255,255;
+  --text:#14161c; --text-2:#5b6272;
+  --accent:#3e63e0; --accent-2:#8a5cf6;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-family); -webkit-tap-highlight-color: transparent; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0a0b10; --bg2:#111319;
+    --glass-bg:rgba(255,255,255,0.07); --glass-border:rgba(255,255,255,0.14);
+    --glass-shadow:0 8px 32px rgba(0,0,0,0.45);
+    --tint:255,255,255;
+    --text:#f2f3f6; --text-2:#9aa1b0;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0a0b10; --bg2:#111319;
+  --glass-bg:rgba(255,255,255,0.07); --glass-border:rgba(255,255,255,0.14);
+  --glass-shadow:0 8px 32px rgba(0,0,0,0.45);
+  --text:#f2f3f6; --text-2:#9aa1b0;
+}
+:root[data-theme="light"]{
+  --bg:#eef1f6; --bg2:#e4e9f2;
+  --glass-bg:rgba(255,255,255,0.55); --glass-border:rgba(255,255,255,0.65);
+  --glass-shadow:0 8px 32px rgba(30,40,70,0.14);
+  --text:#14161c; --text-2:#5b6272;
+}
 
-    body {
-      background-color: var(--bg-base);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      overflow-x: hidden;
-      position: relative;
-    }
+*{
+  box-sizing:border-box;
+  /* Fix lỗi tô xanh/highlight trên thiết bị di động và máy tính */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
 
-    .glass-panel {
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: var(--glass-blur);
-      -webkit-backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-card);
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-    }
+html,body{height:100%}
+body{
+  margin:0; font-family:'Plus Jakarta Sans',system-ui,sans-serif; color:var(--text);
+  background:radial-gradient(circle at 20% 0%, var(--bg2), var(--bg) 60%);
+  overflow-x:hidden; min-height:100%;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+.glass{
+  background:rgba(var(--tint), calc(var(--glass-opacity,55) / 100));
+  backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-sat));
+  border:1px solid var(--glass-border);
+  box-shadow:var(--glass-shadow);
+}
 
-    #bg-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -2; object-fit: cover; }
-    #bg-overlay { position: fixed; inset: 0; z-index: -1; background: radial-gradient(circle at 50% 30%, var(--accent-glow) 0%, transparent 70%); pointer-events: none; }
+/* ---------- Click to enter (Minecraft Style) ---------- */
+#gate{
+  position:fixed; inset:0; z-index:50; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 50% 30%, var(--bg2), var(--bg) 70%);
+  transition:opacity .6s ease, visibility .6s;
+  cursor:pointer;
+}
+#gate.hide{opacity:0; visibility:hidden; pointer-events:none}
+.gate-text{
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.1rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  animation: pulse 1.8s infinite;
+  text-align: center;
+  padding: 20px;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.98); }
+}
 
-    .container { width: 100%; max-width: 480px; padding: 24px 16px; display: flex; flex-direction: column; align-items: center; gap: 24px; z-index: 1; }
+/* ---------- Shell ---------- */
+#app{opacity:0; transform:translateY(14px) scale(.985); transition:opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1); max-width:420px; margin:0 auto; padding:26px 16px 120px; min-height:100%}
+#app.show{opacity:1; transform:none}
+.card{border-radius:28px; padding:26px 22px}
+.avatar-wrap{width:88px; height:88px; margin:0 auto 14px; border-radius:50%; padding:3px; background:linear-gradient(135deg,var(--accent),var(--accent-2))}
+.avatar{width:100%; height:100%; border-radius:50%; background:#c9cfdb center/cover; border:3px solid rgba(var(--tint),.9)}
+.who{text-align:center}
+.name-row{display:flex; align-items:center; justify-content:center; gap:6px}
+.name-row h2{margin:0; font-size:1.15rem; font-weight:800}
+.badge{width:16px;height:16px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center}
+.badge svg{width:9px;height:9px}
+.uname{color:var(--text-2); font-size:.85rem; margin:2px 0 10px}
+.bio{font-size:.88rem; color:var(--text-2); line-height:1.5; margin:0 0 12px}
+.stat-row{display:flex; justify-content:center; gap:18px; font-size:.75rem; color:var(--text-2); margin-bottom:4px}
+.stat-row b{color:var(--text); font-weight:700; display:block; font-size:.9rem}
 
-    .avatar-wrapper { position: relative; width: 110px; height: 110px; }
-    .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2px solid var(--glass-border); box-shadow: 0 0 20px var(--accent-glow); }
+/* tabs & transition */
+.tabbar{display:flex; gap:4px; padding:5px; border-radius:20px; margin:18px 0}
+.tabbar button{flex:1; border:none; background:transparent; padding:9px 4px; border-radius:15px; font-family:inherit; font-size:.72rem; font-weight:600; color:var(--text-2); cursor:pointer; transition:.25s}
+.tabbar button.active{background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; box-shadow:0 3px 10px rgba(62,99,224,.3)}
 
-    .avatar-wrapper.float .avatar-img { animation: floatAnim 4s ease-in-out infinite; }
-    .avatar-wrapper.pulse .avatar-img { animation: pulseAnim 2s infinite; }
-    .avatar-wrapper.glow .avatar-img { box-shadow: 0 0 35px var(--accent-color); }
+.panel{display:none}
+.panel.active{
+  display:block; 
+  animation: tabFadeIn .35s cubic-bezier(.2,.8,.2,1) forwards;
+}
+@keyframes tabFadeIn{
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
-    @keyframes floatAnim { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-    @keyframes pulseAnim { 0% { transform: scale(1); } 50% { transform: scale(1.04); } 100% { transform: scale(1); } }
+.link-btn{display:flex; align-items:center; gap:12px; padding:13px 16px; border-radius:16px; margin-bottom:10px; cursor:pointer; transition:transform .2s}
+.link-btn:active{transform:scale(.98)}
+.link-ico{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--accent),var(--accent-2));flex:none}
+.link-btn span{font-size:.85rem; font-weight:600}
+.link-btn small{display:block; color:var(--text-2); font-weight:400; font-size:.72rem}
+.soc-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.soc{aspect-ratio:1; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; color:var(--text-2)}
+.track{display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; margin-bottom:8px; font-size:.78rem}
+.track .n{width:20px; color:var(--text-2)}
+.track .t{flex:1}
+.track small{color:var(--text-2)}
+.about p{font-size:.85rem; line-height:1.6; color:var(--text-2)}
+.skill{display:inline-block; padding:6px 12px; border-radius:12px; font-size:.72rem; font-weight:600; margin:0 6px 6px 0}
 
-    .profile-info { text-align: center; }
-    .name-badge-wrap { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px; }
-    .display-name { font-size: 1.5rem; font-weight: 700; }
-    .badge { font-size: 0.9rem; color: var(--accent-color); }
-    .badge.vip { color: #f59e0b; }
-    .bio { font-size: 0.95rem; white-space: pre-line; line-height: 1.5; opacity: 0.9; margin-top: 8px; }
+/* floating controls */
+.floating{position:fixed; left:0; right:0; bottom:18px; display:flex; justify-content:center; z-index:20; padding:0 14px}
+.floating.hidden{display:none}
+.player{width:100%; max-width:392px; border-radius:20px; padding:10px 14px; display:flex; align-items:center; gap:12px}
+.cover{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--accent-2),var(--accent)); flex:none}
+.p-meta{flex:1; min-width:0}
+.p-meta .t{font-size:.78rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.p-meta .a{font-size:.68rem; color:var(--text-2)}
+.p-bar{height:3px; border-radius:2px; background:rgba(var(--tint),.4); margin-top:5px; position:relative; overflow:hidden}
+.p-bar i{position:absolute; inset:0 60% 0 0; background:linear-gradient(90deg,var(--accent),var(--accent-2)); border-radius:2px}
+.p-ctrl{display:flex; gap:6px; align-items:center}
+.p-ctrl button{width:30px;height:30px;border-radius:50%; border:none; background:linear-gradient(135deg,var(--accent),var(--accent-2)); cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 3px 10px rgba(62,99,224,.35)}
+.p-ctrl svg{width:12px;height:12px; fill:#fff}
 
-    .links-list { width: 100%; display: flex; flex-direction: column; gap: 14px; }
-    .link-item {
-      width: 100%; padding: 16px; border-radius: var(--radius-btn);
-      display: flex; align-items: center; gap: 14px;
-      text-decoration: none; color: var(--text-main);
-      transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
-    }
-    .link-item:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.08); border-color: var(--accent-color); }
-    .link-item:active { transform: translateY(0) scale(0.98); }
-    .link-text { flex: 1; display: flex; flex-direction: column; }
-    .link-title { font-weight: 600; font-size: 1rem; }
-    .link-desc { font-size: 0.8rem; color: var(--text-muted); }
+/* topbar */
+.topbar{position:fixed; top:calc(14px + env(safe-area-inset-top,0px)); left:0; right:0; display:flex; justify-content:center; gap:8px; z-index:21}
+.topbar button{border:none; padding:8px 15px; border-radius:14px; font-family:inherit; font-size:.75rem; font-weight:700; cursor:pointer; color:#fff; background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 3px 10px rgba(62,99,224,.35); transition: transform .1s;}
+.topbar button:active{transform: scale(0.95);}
 
-    .social-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 8px; }
-    .social-btn {
-      width: 44px; height: 44px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: var(--text-main); font-size: 1.2rem; text-decoration: none;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-    .social-btn:hover { transform: scale(1.1); background: rgba(255, 255, 255, 0.12); color: var(--accent-color); }
-
-    #click-to-enter {
-      position: fixed; inset: 0; z-index: 999;
-      background: var(--bg-base); display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px; cursor: pointer;
-      transition: opacity 0.6s ease, visibility 0.6s ease;
-    }
-    #click-to-enter.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-
-    .music-player-btn {
-      position: fixed; bottom: 24px; right: 24px; width: 48px; height: 48px;
-      border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; z-index: 100; border: 1px solid var(--glass-border);
-      color: var(--text-main); background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px);
-    }
-    .music-player-btn.playing i { animation: spin 3s linear infinite; color: var(--accent-color); }
-    @keyframes spin { 100% { transform: rotate(360deg); } }
-
-    footer { margin-top: auto; padding: 24px; font-size: 0.8rem; color: var(--text-muted); text-align: center; }
-  </style>
+/* appearance dock */
+#dock{position:fixed; right:12px; bottom:80px; z-index:22}
+#dock>button{width:42px;height:42px;border-radius:50%; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,var(--accent),var(--accent-2)); box-shadow:0 3px 10px rgba(62,99,224,.35)}
+#dock>button svg{width:17px;height:17px; fill:#fff}
+#panel-appearance{position:absolute; right:0; bottom:52px; width:230px; border-radius:18px; padding:14px; display:none}
+#panel-appearance.open{display:block}
+#panel-appearance h4{margin:0 0 10px; font-size:.75rem; font-weight:700}
+.row-ctl{margin-bottom:10px}
+.row-ctl label{font-size:.66rem; color:var(--text-2); display:flex; justify-content:space-between; margin-bottom:3px}
+.row-ctl input[type=range]{width:100%}
+.tint-row{display:flex; gap:6px; margin-top:2px}
+.tint-dot{width:20px;height:20px;border-radius:50%; cursor:pointer; border:2px solid transparent}
+.tint-dot.on{border-color:var(--accent)}
+</style>
 </head>
-<body>
+<body data-theme="">
 
-  <video id="bg-canvas" autoplay loop muted playsinline style="display:none;"></video>
-  <div id="bg-overlay"></div>
+<!-- Màn hình Gate tối giản dạng chữ Minecraft -->
+<div id="gate" class="glass">
+  <div class="gate-text">CLICK TO ENTER</div>
+</div>
 
-  <div id="click-to-enter" class="hidden">
-    <div class="avatar-wrapper">
-      <img id="enter-avatar" class="avatar-img" src="" alt="Avatar">
+<div class="topbar">
+  <button class="glass" id="themeBtn">Theme: Auto</button>
+</div>
+
+<div id="app">
+  <div class="card glass who">
+    <div class="avatar-wrap"><div class="avatar" id="avatarImg"></div></div>
+    <div class="name-row"><h2>Quốc Đạt</h2><span class="badge"><svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></span></div>
+    <div class="uname">@quocdat · digitalsmod</div>
+    <p class="bio">Designer & developer building calm, glassy interfaces. Sài Gòn 🇻🇳</p>
+    <div class="stat-row">
+      <div><b>12.4k</b>views</div>
+      <div><b>1.8k</b>clicks</div>
+      <div><b>♪ live</b>status</div>
     </div>
-    <h2 id="enter-name"></h2>
-    <p style="color: var(--text-muted); font-size:0.9rem;">Nhấp vào bất kỳ đâu để truy cập</p>
   </div>
 
-  <main class="container">
-    <div class="glass-panel" style="width: 100%; padding: 32px 20px; display: flex; flex-direction: column; align-items: center;">
-      <div id="avatar-container" class="avatar-wrapper">
-        <img id="bio-avatar" class="avatar-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3C/svg%3E" alt="Avatar">
-      </div>
-      <div class="profile-info" style="margin-top: 16px;">
-        <div class="name-badge-wrap">
-          <h1 id="bio-name" class="display-name"></h1>
-          <span id="bio-badge"></span>
-        </div>
-        <p id="bio-desc" class="bio"></p>
-      </div>
-      <div id="links-container" class="links-list" style="margin-top: 24px;"></div>
-      <div id="socials-container" class="social-list"></div>
+  <div class="tabbar glass" id="tabbar">
+    <button class="active" data-tab="home">Home</button>
+    <button data-tab="links">Links</button>
+    <button data-tab="social">Social</button>
+    <button data-tab="music">Music</button>
+    <button data-tab="about">About</button>
+  </div>
+
+  <div class="panel active card glass" data-panel="home">
+    <div class="link-btn glass"><div class="link-ico"></div><div><span>Xem portfolio</span><small>Featured</small></div></div>
+    <div class="link-btn glass"><div class="link-ico"></div><div><span>Liên hệ hợp tác</span><small>Booking</small></div></div>
+  </div>
+
+  <div class="panel card glass" data-panel="links">
+    <div class="link-btn glass"><div class="link-ico"></div><div><span>Website cá nhân</span><small>digitalsmod.site</small></div></div>
+    <div class="link-btn glass"><div class="link-ico"></div><div><span>GitHub</span><small>@quocdat</small></div></div>
+    <div class="link-btn glass"><div class="link-ico"></div><div><span>Store</span><small>Sản phẩm</small></div></div>
+  </div>
+
+  <div class="panel card glass" data-panel="social">
+    <div class="soc-grid">
+      <div class="soc glass">IG</div><div class="soc glass">X</div><div class="soc glass">TT</div><div class="soc glass">YT</div>
+      <div class="soc glass">FB</div><div class="soc glass">DC</div><div class="soc glass">TG</div><div class="soc glass">GH</div>
     </div>
-  </main>
+  </div>
 
-  <audio id="bg-music" loop></audio>
-  <button id="music-btn" class="music-player-btn glass-panel" style="display: none;">
-    <i class="fa-solid fa-music"></i>
-  </button>
+  <div class="panel card glass" data-panel="music">
+    <div class="track glass"><span class="n">1</span><span class="t">Midnight Glass</span><small>3:12</small></div>
+    <div class="track glass"><span class="n">2</span><span class="t">Soft Reflection</span><small>2:47</small></div>
+    <div class="track glass"><span class="n">3</span><span class="t">Aurora Drift</span><small>4:01</small></div>
+  </div>
 
-  <footer id="bio-footer">© 2026 DIGITALSMOD</footer>
+  <div class="panel card glass about" data-panel="about">
+    <p>Mình làm việc trong lĩnh vực thiết kế giao diện và phát triển web, tập trung vào phong cách Liquid Glass tối giản.</p>
+    <div><span class="skill glass">UI Design</span><span class="skill glass">Frontend</span><span class="skill glass">Firebase</span><span class="skill glass">Motion</span></div>
+  </div>
+</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, get, child, update, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+<div class="floating">
+  <div class="player glass">
+    <div class="cover"></div>
+    <div class="p-meta"><div class="t">Midnight Glass</div><div class="a">quocdat · Album</div>
+      <div class="p-bar"><i id="pbar"></i></div>
+    </div>
+    <div class="p-ctrl">
+      <button id="prevBtn"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6L10 12l10 6z"/></svg></button>
+      <button id="playBtn"><svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+      <button id="nextBtn"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6l10 6-10 6z"/></svg></button>
+    </div>
+  </div>
+</div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
-      authDomain: "taikhoan-fc704.firebaseapp.com",
-      databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "taikhoan-fc704",
-      storageBucket: "taikhoan-fc704.firebasestorage.app",
-      messagingSenderId: "867203109533",
-      appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74",
-      measurementId: "G-PQDSS2N5XE"
-    };
+<div id="dock">
+  <div id="panel-appearance" class="glass">
+    <h4>Liquid Glass</h4>
+    <div class="row-ctl"><label><span>Opacity</span><span id="vOpacity">55%</span></label><input type="range" id="rOpacity" min="10" max="90" value="55"></div>
+    <div class="row-ctl"><label><span>Blur</span><span id="vBlur">22px</span></label><input type="range" id="rBlur" min="0" max="50" value="22"></div>
+    <div class="row-ctl"><label><span>Saturation</span><span id="vSat">150%</span></label><input type="range" id="rSat" min="80" max="220" value="150"></div>
+    <div class="row-ctl"><label>Tint</label>
+      <div class="tint-row">
+        <div class="tint-dot on" style="background:#fff" data-tint="255,255,255"></div>
+        <div class="tint-dot" style="background:#dbe6ff" data-tint="219,230,255"></div>
+        <div class="tint-dot" style="background:#e6dbff" data-tint="230,219,255"></div>
+        <div class="tint-dot" style="background:#dbfff0" data-tint="219,255,240"></div>
+        <div class="tint-dot" style="background:#ffe3ef" data-tint="255,227,239"></div>
+      </div>
+    </div>
+  </div>
+  <button class="glass" id="dockBtn"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18 9 9 0 000-18zm0 4a2 2 0 110 4 2 2 0 010-4z"/></svg></button>
+</div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const KEY = "my_bio";
+<script>
+const AVATAR_URL = ""; 
+if(AVATAR_URL){ document.getElementById('avatarImg').style.background = `url('${AVATAR_URL}') center/cover`; }
 
-    function sanitizeHTML(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+const root=document.documentElement;
+
+// Theme chuyển đổi nền
+const themes = ['auto', 'light', 'dark'];
+let ti = 0;
+const themeBtn = document.getElementById('themeBtn');
+
+function applyTheme(){
+  const th = themes[ti];
+  if(th === 'auto'){ 
+    root.removeAttribute('data-theme'); 
+    themeBtn.textContent = 'Theme: Auto';
+  } else if(th === 'light'){ 
+    root.setAttribute('data-theme', 'light'); 
+    themeBtn.textContent = 'Theme: Light';
+  } else if(th === 'dark'){ 
+    root.setAttribute('data-theme', 'dark'); 
+    themeBtn.textContent = 'Theme: Dark';
+  }
+}
+themeBtn.addEventListener('click', () => { 
+  ti = (ti + 1) % themes.length; 
+  applyTheme(); 
+});
+
+// Click gate to enter
+document.getElementById('gate').addEventListener('click', ()=>{
+  document.getElementById('gate').classList.add('hide');
+  document.getElementById('app').classList.add('show');
+});
+
+// Chuyển Tab + Hiệu ứng
+document.getElementById('tabbar').addEventListener('click', e => {
+  const b = e.target.closest('button'); 
+  if(!b || b.classList.contains('active')) return;
+  
+  document.querySelectorAll('#tabbar button').forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  
+  const tab = b.dataset.tab;
+  document.querySelectorAll('.panel').forEach(p => {
+    if(p.dataset.panel === tab) {
+      p.classList.add('active');
+    } else {
+      p.classList.remove('active');
     }
+  });
+});
 
-    function sanitizeURL(url) {
-      if (!url) return '#';
-      const clean = String(url).trim();
-      return (clean.startsWith('http://') || clean.startsWith('https://') || clean.startsWith('mailto:') || clean.startsWith('tel:')) ? clean : '#';
-    }
+// Music Player UI
+let playing=false, progress=40, timer=null;
+const playIcon=document.getElementById('playIcon');
+const pbar=document.getElementById('pbar');
+function setProgress(p){ progress=p; pbar.style.right=(100-p)+'%'; }
+setProgress(progress);
+document.getElementById('playBtn').addEventListener('click',()=>{
+  playing=!playing;
+  playIcon.innerHTML = playing ? '<rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/>' : '<path d="M8 5v14l11-7z"/>';
+  if(playing){ timer=setInterval(()=>{ setProgress(progress>=100?0:progress+0.6); },300); }
+  else{ clearInterval(timer); }
+});
 
-    let bgAudio = document.getElementById('bg-music');
+// Dock Appearance
+const dockBtn=document.getElementById('dockBtn');
+const panelApp=document.getElementById('panel-appearance');
+dockBtn.addEventListener('click',()=>panelApp.classList.toggle('open'));
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const dbRef = ref(db);
-        const pSnap = await get(child(dbRef, `profiles/${KEY}`));
-        const lSnap = await get(child(dbRef, `links/${KEY}`));
-        const sSnap = await get(child(dbRef, `socials/${KEY}`));
-
-        if (pSnap.exists()) renderProfile(pSnap.val());
-        if (lSnap.exists()) renderLinks(lSnap.val());
-        if (sSnap.exists()) renderSocials(sSnap.val());
-
-        update(ref(db, `analytics/${KEY}`), { views: increment(1) });
-      } catch (err) {
-        console.error("Lỗi đọc dữ liệu:", err);
-      }
-    });
-
-    function renderProfile(profile) {
-      document.title = sanitizeHTML(profile.name) || "Bio";
-      document.getElementById('bio-name').innerText = profile.name || '';
-      document.getElementById('bio-desc').innerText = profile.bio || '';
-
-      const avatarImg = document.getElementById('bio-avatar');
-      avatarImg.src = profile.avatar ? sanitizeURL(profile.avatar) : 'https://via.placeholder.com/150';
-
-      const avatarContainer = document.getElementById('avatar-container');
-      if (profile.avatarAnim) avatarContainer.classList.add(profile.avatarAnim);
-
-      const badgeEl = document.getElementById('bio-badge');
-      if (profile.badge === 'verified') badgeEl.innerHTML = `<i class="fa-solid fa-circle-check badge" title="Verified"></i>`;
-      else if (profile.badge === 'vip') badgeEl.innerHTML = `<i class="fa-solid fa-crown badge vip" title="VIP"></i>`;
-      else if (profile.badge === 'admin') badgeEl.innerHTML = `<i class="fa-solid fa-user-shield badge" title="Admin"></i>`;
-
-      if (profile.bgType === 'image') {
-        document.body.style.backgroundImage = `url('${sanitizeURL(profile.bgValue)}')`;
-        document.body.style.backgroundSize = 'cover';
-        document.body.style.backgroundPosition = 'center';
-      } else if (profile.bgType === 'video') {
-        const vid = document.getElementById('bg-canvas');
-        vid.src = sanitizeURL(profile.bgValue);
-        vid.style.display = 'block';
-      } else if (profile.bgValue) {
-        document.body.style.background = profile.bgValue;
-      }
-
-      if (profile.accentColor) {
-        document.documentElement.style.setProperty('--accent-color', profile.accentColor);
-        document.documentElement.style.setProperty('--accent-glow', profile.accentColor + '66');
-      }
-
-      if (profile.clickToEnter) {
-        const cte = document.getElementById('click-to-enter');
-        document.getElementById('enter-avatar').src = avatarImg.src;
-        document.getElementById('enter-name').innerText = profile.name;
-        cte.classList.remove('hidden');
-
-        cte.addEventListener('click', () => {
-          cte.classList.add('hidden');
-          if (profile.musicUrl) playAudio(profile.musicUrl);
-        });
-      } else if (profile.musicUrl) {
-        playAudio(profile.musicUrl);
-      }
-    }
-
-    function renderLinks(linksObj) {
-      const container = document.getElementById('links-container');
-      container.innerHTML = '';
-      
-      const linksArray = Object.keys(linksObj).map(k => ({ id: k, ...linksObj[k] }));
-      linksArray.sort((a, b) => (a.order || 0) - (b.order || 0));
-
-      linksArray.forEach(link => {
-        if (!link.enabled) return;
-
-        const a = document.createElement('a');
-        a.className = 'link-item glass-panel';
-        a.href = sanitizeURL(link.url);
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-
-        let iconHTML = link.icon ? `<i class="${sanitizeHTML(link.icon)}"></i>` : `<i class="fa-solid fa-link"></i>`;
-
-        a.innerHTML = `
-          <div style="font-size:1.2rem; display:flex; align-items:center;">${iconHTML}</div>
-          <div class="link-text">
-            <span class="link-title">${sanitizeHTML(link.title)}</span>
-            ${link.description ? `<span class="link-desc">${sanitizeHTML(link.description)}</span>` : ''}
-          </div>
-          <i class="fa-solid fa-chevron-right" style="font-size:0.8rem; opacity:0.5;"></i>
-        `;
-
-        a.addEventListener('click', () => {
-          update(ref(db, `analytics/${KEY}`), { clicks: increment(1) });
-        });
-
-        container.appendChild(a);
-      });
-    }
-
-    function renderSocials(socialsObj) {
-      const container = document.getElementById('socials-container');
-      container.innerHTML = '';
-
-      const platforms = {
-        facebook: 'fa-brands fa-facebook-f', tiktok: 'fa-brands fa-tiktok',
-        youtube: 'fa-brands fa-youtube', instagram: 'fa-brands fa-instagram',
-        discord: 'fa-brands fa-discord', telegram: 'fa-brands fa-telegram',
-        github: 'fa-brands fa-github', x: 'fa-brands fa-x-twitter', email: 'fa-solid fa-envelope'
-      };
-
-      Object.keys(socialsObj).forEach(key => {
-        const soc = socialsObj[key];
-        if (soc.enabled && soc.url) {
-          const a = document.createElement('a');
-          a.className = 'social-btn glass-panel';
-          a.href = key === 'email' ? `mailto:${sanitizeHTML(soc.url)}` : sanitizeURL(soc.url);
-          a.target = '_blank';
-          a.rel = 'noopener noreferrer';
-          a.innerHTML = `<i class="${platforms[key] || 'fa-solid fa-globe'}"></i>`;
-          container.appendChild(a);
-        }
-      });
-    }
-
-    function playAudio(url) {
-      bgAudio.src = sanitizeURL(url);
-      const btn = document.getElementById('music-btn');
-      btn.style.display = 'flex';
-
-      const playPromise = bgAudio.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => btn.classList.add('playing'))
-          .catch(() => btn.classList.remove('playing'));
-      }
-
-      btn.addEventListener('click', () => {
-        if (bgAudio.paused) {
-          bgAudio.play();
-          btn.classList.add('playing');
-        } else {
-          bgAudio.pause();
-          btn.classList.remove('playing');
-        }
-      });
-    }
-  </script>
+function setVar(name,val){ root.style.setProperty(name,val); }
+document.getElementById('rOpacity').addEventListener('input',e=>{
+  setVar('--glass-opacity', e.target.value);
+  document.getElementById('vOpacity').textContent=e.target.value+'%';
+});
+document.getElementById('rBlur').addEventListener('input',e=>{
+  setVar('--glass-blur', e.target.value+'px');
+  document.getElementById('vBlur').textContent=e.target.value+'px';
+});
+document.getElementById('rSat').addEventListener('input',e=>{
+  setVar('--glass-sat', e.target.value+'%');
+  document.getElementById('vSat').textContent=e.target.value+'%';
+});
+document.querySelectorAll('.tint-dot').forEach(d=>{
+  d.addEventListener('click',()=>{
+    document.querySelectorAll('.tint-dot').forEach(x=>x.classList.remove('on'));
+    d.classList.add('on');
+    setVar('--tint', d.dataset.tint);
+  });
+});
+</script>
 </body>
 </html>
