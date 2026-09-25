@@ -7,8 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
-<!-- Supabase SDK CDN chuẩn -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -39,8 +37,9 @@ body{
   box-shadow:var(--glass-shadow);
 }
 
+/* Gate màn hình chờ */
 #gate{
-  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  position:fixed; inset:0; z-index:99999; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(circle at 50% 30%, var(--bg2), var(--bg) 70%);
   transition:opacity .6s ease, visibility .6s; cursor:pointer; pointer-events: auto;
 }
@@ -130,26 +129,28 @@ body{
 </div>
 
 <script>
-// CẤU HÌNH SUPABASE HOÀN CHỈNH
-const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvb2VudnhzbHV0ZXRibGxhc3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzkwODQsImV4cCI6MjEwNTkxNTA4NH0.2UWFfFV9Rejv2mDgyyZYspOou_iSmPB_s_SUXtn8QPY';
+const API_URL = 'https://pooenvxslutetbllasvi.supabase.co/rest/v1';
+const API_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvb2VudnhzbHV0ZXRibGxhc3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzkwODQsImV4cCI6MjEwNTkxNTA4NH0.2UWFfFV9Rejv2mDgyyZYspOou_iSmPB_s_SUXtn8QPY';
 
-const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Event Gate Click
-document.getElementById('gate').addEventListener('click', function() {
+// Chắc chắn sự kiện bấm Gate luôn chạy
+document.getElementById('gate').onclick = function() {
   this.classList.add('hide');
   document.getElementById('app').classList.add('show');
-});
+};
 
-// Lấy danh mục liên kết từ CSDL
+// Gọi dữ liệu trực tiếp không qua SDK
 async function fetchLinks() {
   const container = document.getElementById('links-container');
   try {
-    const { data, error } = await db.from('links').select('*').order('sort_order', { ascending: true });
-    
-    if (error) throw error;
+    const res = await fetch(`${API_URL}/links?select=*&order=sort_order.asc`, {
+      headers: {
+        'apikey': API_KEY,
+        'Authorization': `Bearer ${API_KEY}`
+      }
+    });
+
+    if (!res.ok) throw new Error('Cấu hình API chưa đúng');
+    const data = await res.json();
 
     if (!data || data.length === 0) {
       container.innerHTML = '<p style="font-size:0.8rem; color:var(--text-2);">Chưa có liên kết nào</p>';
