@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -33,7 +32,7 @@ body{
   overflow-x:hidden; min-height:100%; position:relative;
 }
 
-#fxCanvas { position: fixed; inset: 0; pointer-events: none !important; z-index: 5; }
+#fxCanvas { position: fixed; inset: 0; pointer-events: none !important; z-index: 1; }
 
 .glass{
   background:rgba(var(--tint), 0.08);
@@ -43,8 +42,9 @@ body{
   box-shadow:var(--glass-shadow);
 }
 
+/* Gate màn hình chờ */
 #gate{
-  position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(circle at 50% 30%, var(--bg2), var(--bg) 70%);
   transition:opacity .6s ease, visibility .6s; cursor:pointer; pointer-events: auto;
 }
@@ -57,7 +57,7 @@ body{
 
 #app{
   opacity:0; transform:translateY(14px) scale(.985); transition:opacity .55s ease, transform .55s cubic-bezier(.2,.8,.2,1);
-  max-width:420px; margin:0 auto; padding:26px 16px 40px; min-height:100%; z-index: 20; position: relative;
+  max-width:420px; margin:0 auto; padding:26px 16px 40px; min-height:100%; z-index: 10; position: relative;
 }
 #app.show{opacity:1; transform:none}
 
@@ -134,41 +134,50 @@ body{
 </div>
 
 <script>
-// SUPABASE CONFIG - Cấu hình trực tiếp
-const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// SUPABASE API CONFIG
+const API_URL = 'https://pooenvxslutetbllasvi.supabase.co/rest/v1';
+const API_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
 
-// Fix Gate Click
-document.getElementById('gate').onclick = function() {
+// Bấm Click To Enter
+document.getElementById('gate').addEventListener('click', function() {
   this.classList.add('hide');
   document.getElementById('app').classList.add('show');
-};
+});
 
+// Fetch danh sách nút trực tiếp qua HTTP REST API
 async function fetchLinks() {
-  const { data, error } = await db.from('links').select('*').order('sort_order', { ascending: true });
   const container = document.getElementById('links-container');
-  
-  if (error || !data || data.length === 0) {
-    container.innerHTML = '<p style="font-size:0.8rem; color:var(--text-2);">Chưa có liên kết nào</p>';
-    return;
-  }
+  try {
+    const res = await fetch(`${API_URL}/links?select=*&order=sort_order.asc`, {
+      headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${API_KEY}` }
+    });
+    
+    if (!res.ok) throw new Error('Không thể tải dữ liệu');
+    const data = await res.json();
 
-  container.innerHTML = '';
-  data.forEach(item => {
-    container.innerHTML += `
-      <a href="${item.url}" target="_blank" class="link-btn glass btn-fx">
-        <div class="link-ico">
-          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-        </div>
-        <div>
-          <span>${item.title}</span>
-          <small>${item.subtitle || ''}</small>
-        </div>
-      </a>
-    `;
-  });
-  bindRipples();
+    if (!data || data.length === 0) {
+      container.innerHTML = '<p style="font-size:0.8rem; color:var(--text-2);">Chưa có liên kết nào</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    data.forEach(item => {
+      container.innerHTML += `
+        <a href="${item.url}" target="_blank" class="link-btn glass btn-fx">
+          <div class="link-ico">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          </div>
+          <div>
+            <span>${item.title}</span>
+            <small>${item.subtitle || ''}</small>
+          </div>
+        </a>
+      `;
+    });
+    bindRipples();
+  } catch (err) {
+    container.innerHTML = '<p style="font-size:0.8rem; color:#e53935;">Lỗi kết nối CSDL</p>';
+  }
 }
 
 function bindRipples() {
