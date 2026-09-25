@@ -8,59 +8,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-<!-- SDK Firebase v10 JS CDN -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
-    authDomain: "taikhoan-fc704.firebaseapp.com",
-    databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "taikhoan-fc704",
-    storageBucket: "taikhoan-fc704.firebasestorage.app",
-    messagingSenderId: "867203109533",
-    appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  const container = document.getElementById('links-container');
-  const linksRef = ref(db, 'links');
-
-  // Lắng nghe dữ liệu realtime từ Firebase
-  onValue(linksRef, (snapshot) => {
-    const data = snapshot.val();
-    if (!data) {
-      container.innerHTML = '<p style="font-size:0.8rem; color:#9aa1b0;">Chưa có liên kết nào</p>';
-      return;
-    }
-
-    container.innerHTML = '';
-    
-    // Chuyển object Firebase thành mảng và sắp xếp theo sort_order
-    const linkList = Object.keys(data).map(key => ({ id: key, ...data[key] }));
-    linkList.sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0));
-
-    linkList.forEach(item => {
-      container.innerHTML += `
-        <a href="${item.url}" target="_blank" class="link-btn glass btn-fx">
-          <div class="link-ico">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-          </div>
-          <div>
-            <span>${item.title}</span>
-            <small>${item.subtitle || ''}</small>
-          </div>
-        </a>
-      `;
-    });
-  }, (error) => {
-    container.innerHTML = '<p style="font-size:0.8rem; color:#e53935;">Lỗi kết nối Firebase (Hãy kiểm tra Rules)</p>';
-  });
-</script>
-
 <style>
 :root{
   box-sizing:border-box;
@@ -148,6 +95,55 @@ html,body{ height:100%; margin:0; font-family:'Plus Jakarta Sans',system-ui,sans
     </div>
   </div>
 </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
+    authDomain: "taikhoan-fc704.firebaseapp.com",
+    databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "taikhoan-fc704",
+    storageBucket: "taikhoan-fc704.firebasestorage.app",
+    messagingSenderId: "867203109533",
+    appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const container = document.getElementById('links-container');
+  const linksRef = ref(db, 'links');
+
+  onValue(linksRef, (snapshot) => {
+    const data = snapshot.val();
+    if (!data) {
+      container.innerHTML = '<p style="font-size:0.8rem; color:#9aa1b0;">Chưa có liên kết nào</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+    const linkList = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+    linkList.sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0));
+
+    linkList.forEach(item => {
+      container.innerHTML += `
+        <a href="${item.url}" target="_blank" class="link-btn glass btn-fx">
+          <div class="link-ico">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          </div>
+          <div>
+            <span>${item.title}</span>
+            <small>${item.subtitle || ''}</small>
+          </div>
+        </a>
+      `;
+    });
+  }, (error) => {
+    container.innerHTML = '<p style="font-size:0.8rem; color:#e53935;">Lỗi kết nối CSDL Firebase</p>';
+  });
+</script>
 
 <script>
 // Tuyết rơi Canvas
