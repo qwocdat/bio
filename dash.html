@@ -24,21 +24,22 @@
 <!-- Box Đăng Nhập -->
 <div id="login-box" class="box">
   <h3>Đăng nhập Admin</h3>
-  <input type="email" id="email" value="godame1610@gmail.com" placeholder="Email Admin">
-  <input type="password" id="password" value="ame1610@" placeholder="Mật khẩu">
-  <button onclick="login()">Đăng Nhập</button>
+  <input type="email" id="email" placeholder="Nhập Email Admin">
+  <input type="password" id="password" placeholder="Nhập Mật khẩu">
+  <button id="loginBtn">Đăng Nhập</button>
+  <div id="login-msg" style="color:#e53935; font-size:0.8rem; margin-top:8px;"></div>
 </div>
 
 <!-- Box Quản Lý -->
 <div id="admin-box" class="box hidden">
-  <button onclick="logout()" style="background:#e53935; margin-bottom: 20px;">Đăng Xuất</button>
+  <button id="logoutBtn" style="background:#e53935; margin-bottom: 20px;">Đăng Xuất</button>
 
   <h3>1. Thêm Nút Bấm Mới</h3>
   <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
   <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
   <input type="text" id="url" placeholder="Đường dẫn URL">
   <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
-  <button onclick="addLink()">Thêm Nút Bấm</button>
+  <button id="addBtn">Thêm Nút Bấm</button>
 
   <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
 
@@ -49,14 +50,14 @@
 
   <h3>3. Upload & Lấy Link Ảnh</h3>
   <input type="file" id="file-input" accept="image/*">
-  <button onclick="uploadImage()">Tải Ảnh Lên Storage</button>
+  <button id="uploadBtn">Tải Ảnh Lên Storage</button>
   <div id="upload-result" style="margin-top: 10px; word-break: break-all;"></div>
 </div>
 
 <script>
-// SUPABASE CONFIG
+// SUPABASE CONFIG - Cấu hình trực tiếp
 const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'THAY_ANON_KEY_CỦA_BẠN'; // <--- Dán chuỗi anon key vào đây
+const SUPABASE_ANON_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function checkAuth() {
@@ -68,20 +69,33 @@ async function checkAuth() {
   }
 }
 
-async function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  if (error) alert('Lỗi đăng nhập: ' + error.message);
-  else checkAuth();
-}
+document.getElementById('loginBtn').onclick = async function() {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  const msg = document.getElementById('login-msg');
 
-async function logout() {
+  if(!email || !password) {
+    msg.innerText = "Vui lòng nhập đủ email và mật khẩu!";
+    return;
+  }
+
+  msg.innerText = "Đang xác thực...";
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  
+  if (error) {
+    msg.innerText = "Lỗi: " + error.message;
+  } else {
+    msg.innerText = "";
+    checkAuth();
+  }
+};
+
+document.getElementById('logoutBtn').onclick = async function() {
   await db.auth.signOut();
   location.reload();
-}
+};
 
-async function addLink() {
+document.getElementById('addBtn').onclick = async function() {
   const title = document.getElementById('title').value;
   const subtitle = document.getElementById('subtitle').value;
   const url = document.getElementById('url').value;
@@ -98,7 +112,7 @@ async function addLink() {
     document.getElementById('url').value = '';
     loadAdminLinks();
   }
-}
+};
 
 async function loadAdminLinks() {
   const { data } = await db.from('links').select('*').order('sort_order', { ascending: true });
@@ -123,14 +137,14 @@ async function loadAdminLinks() {
   });
 }
 
-async function deleteLink(id) {
+window.deleteLink = async function(id) {
   if(confirm('Bạn có chắc muốn xóa nút này?')) {
     await db.from('links').delete().eq('id', id);
     loadAdminLinks();
   }
-}
+};
 
-async function uploadImage() {
+document.getElementById('uploadBtn').onclick = async function() {
   const fileInput = document.getElementById('file-input');
   const file = fileInput.files[0];
   if (!file) return alert('Vui lòng chọn 1 ảnh!');
@@ -148,7 +162,7 @@ async function uploadImage() {
       <input type="text" value="${url}" readonly onclick="this.select()">
     `;
   }
-}
+};
 
 checkAuth();
 </script>
