@@ -3,176 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin Dashboard — DIGITALSMOD</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<title>Admin Dashboard — Firebase</title>
 <style>
   body { background: #0a0b10; color: #eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
-  h2, h3 { margin-top: 0; }
   input, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: #161822; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
   button { background: linear-gradient(135deg, #3e63e0, #8a5cf6); cursor: pointer; border: none; font-weight: bold; margin-top: 10px; }
   button:active { transform: scale(0.98); }
   .box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
-  .hidden { display: none; }
   .link-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
   .del-btn { width: auto; padding: 6px 12px; background: #e53935; margin: 0; font-size: 0.75rem; }
 </style>
-</head>
-<body>
 
-<h2>Quản Trị Bio & Storage</h2>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-<!-- Form Đăng Nhập -->
-<div id="login-box" class="box">
-  <h3>Đăng nhập Admin</h3>
-  <input type="text" id="email" autocomplete="off" placeholder="Nhập Email Admin">
-  <input type="password" id="password" autocomplete="new-password" placeholder="Nhập Mật khẩu">
-  <button id="loginBtn">Đăng Nhập</button>
-  <div id="login-msg" style="color:#e53935; font-size:0.8rem; margin-top:8px;"></div>
-</div>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
+    authDomain: "taikhoan-fc704.firebaseapp.com",
+    databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "taikhoan-fc704",
+    storageBucket: "taikhoan-fc704.firebasestorage.app",
+    messagingSenderId: "867203109533",
+    appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
+  };
 
-<!-- Form Quản Lý -->
-<div id="admin-box" class="box hidden">
-  <button id="logoutBtn" style="background:#e53935; margin-bottom: 20px;">Đăng Xuất</button>
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const linksRef = ref(db, 'links');
 
-  <h3>1. Thêm Nút Bấm Mới</h3>
-  <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
-  <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
-  <input type="text" id="url" placeholder="Đường dẫn URL">
-  <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
-  <button id="addBtn">Thêm Nút Bấm</button>
+  // Thêm nút mới
+  document.getElementById('addBtn').onclick = function() {
+    const title = document.getElementById('title').value.trim();
+    const subtitle = document.getElementById('subtitle').value.trim();
+    const url = document.getElementById('url').value.trim();
+    const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
 
-  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
+    if (!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
 
-  <h3>2. Danh Sách Nút Hiện Tại</h3>
-  <div id="admin-links-list">Đang tải...</div>
+    push(linksRef, { title, subtitle, url, sort_order })
+      .then(() => {
+        alert('Đã thêm nút bấm thành công!');
+        document.getElementById('title').value = '';
+        document.getElementById('subtitle').value = '';
+        document.getElementById('url').value = '';
+      })
+      .catch((err) => alert('Lỗi: ' + err.message));
+  };
 
-  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
+  // Load danh sách và Xóa
+  onValue(linksRef, (snapshot) => {
+    const data = snapshot.val();
+    const container = document.getElementById('admin-links-list');
+    container.innerHTML = '';
 
-  <h3>3. Upload & Lấy Link Ảnh</h3>
-  <input type="file" id="file-input" accept="image/*">
-  <button id="uploadBtn">Tải Ảnh Lên Storage</button>
-  <div id="upload-result" style="margin-top: 10px; word-break: break-all;"></div>
-</div>
+    if (!data) {
+      container.innerHTML = '<small>Chưa có dữ liệu</small>';
+      return;
+    }
 
-<script>
-const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvb2VudnhzbHV0ZXRibGxhc3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzkwODQsImV4cCI6MjEwNTkxNTA4NH0.2UWFfFV9Rejv2mDgyyZYspOou_iSmPB_s_SUXtn8QPY';
-
-const { createClient } = window.supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-window.addEventListener('load', () => {
-  document.getElementById('email').value = '';
-  document.getElementById('password').value = '';
-  checkAuth();
-});
-
-async function checkAuth() {
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
-    document.getElementById('login-box').classList.add('hidden');
-    document.getElementById('admin-box').classList.remove('hidden');
-    loadAdminLinks();
-  } else {
-    document.getElementById('login-box').classList.remove('hidden');
-    document.getElementById('admin-box').classList.add('hidden');
-  }
-}
-
-document.getElementById('loginBtn').onclick = async function() {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value.trim();
-  const msg = document.getElementById('login-msg');
-
-  if(!email || !password) {
-    msg.innerText = "Vui lòng nhập đủ email và mật khẩu!";
-    return;
-  }
-
-  msg.innerText = "Đang xác thực...";
-  const { data, error } = await db.auth.signInWithPassword({ email, password });
-
-  if (error) {
-    msg.innerText = "Lỗi: " + error.message;
-  } else {
-    msg.innerText = "";
-    checkAuth();
-  }
-};
-
-document.getElementById('logoutBtn').onclick = async function() {
-  await db.auth.signOut();
-  location.reload();
-};
-
-document.getElementById('addBtn').onclick = async function() {
-  const title = document.getElementById('title').value;
-  const subtitle = document.getElementById('subtitle').value;
-  const url = document.getElementById('url').value;
-  const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
-
-  if(!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
-
-  const { error } = await db.from('links').insert([{ title, subtitle, url, sort_order }]);
-  if (error) alert('Lỗi: ' + error.message);
-  else {
-    alert('Đã thêm nút mới thành công!');
-    document.getElementById('title').value = '';
-    document.getElementById('subtitle').value = '';
-    document.getElementById('url').value = '';
-    loadAdminLinks();
-  }
-};
-
-async function loadAdminLinks() {
-  const { data, error } = await db.from('links').select('*').order('sort_order', { ascending: true });
-  const container = document.getElementById('admin-links-list');
-  container.innerHTML = '';
-  
-  if(error || !data || data.length === 0) {
-    container.innerHTML = '<small>Chưa có dữ liệu</small>';
-    return;
-  }
-
-  data.forEach(item => {
-    container.innerHTML += `
-      <div class="link-item">
+    Object.keys(data).forEach(id => {
+      const item = data[id];
+      const div = document.createElement('div');
+      div.className = 'link-item';
+      div.innerHTML = `
         <div>
           <strong>${item.title}</strong><br>
           <small style="color:#aaa">${item.url}</small>
         </div>
-        <button class="del-btn" onclick="deleteLink(${item.id})">Xóa</button>
-      </div>
-    `;
+        <button class="del-btn">Xóa</button>
+      `;
+      div.querySelector('.del-btn').onclick = () => {
+        if (confirm('Xóa nút này?')) {
+          remove(ref(db, `links/${id}`));
+        }
+      };
+      container.appendChild(div);
+    });
   });
-}
-
-window.deleteLink = async function(id) {
-  if(confirm('Bạn có chắc muốn xóa nút này?')) {
-    await db.from('links').delete().eq('id', id);
-    loadAdminLinks();
-  }
-};
-
-document.getElementById('uploadBtn').onclick = async function() {
-  const fileInput = document.getElementById('file-input');
-  const file = fileInput.files[0];
-  if (!file) return alert('Vui lòng chọn 1 ảnh!');
-
-  const fileName = `${Date.now()}_${file.name}`;
-  const { data, error } = await db.storage.from('uploads').upload(fileName, file);
-
-  if (error) {
-    alert('Lỗi upload: ' + error.message);
-  } else {
-    const { data: publicUrlData } = db.storage.from('uploads').getPublicUrl(fileName);
-    const url = publicUrlData.publicUrl;
-    document.getElementById('upload-result').innerHTML = `
-      <p style="font-size:0.8rem; color:#4caf50;">Upload thành công! Link ảnh:</p>
-      <input type="text" value="${url}" readonly onclick="this.select()">
-    `;
-  }
-};
 </script>
+</head>
+<body>
+
+<h2>Quản Trị Bio Firebase</h2>
+
+<div class="box">
+  <h3>Thêm Nút Bấm Mới</h3>
+  <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
+  <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
+  <input type="text" id="url" placeholder="Đường dẫn URL">
+  <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
+  <button type="button" id="addBtn">Thêm Nút Bấm</button>
+
+  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
+
+  <h3>Danh Sách Nút Hiện Tại</h3>
+  <div id="admin-links-list">Đang tải...</div>
+</div>
+
 </body>
 </html>
