@@ -24,8 +24,8 @@
 <!-- Box Đăng Nhập -->
 <div id="login-box" class="box">
   <h3>Đăng nhập Admin</h3>
-  <input type="email" id="email" placeholder="Email Admin">
-  <input type="password" id="password" placeholder="Mật khẩu">
+  <input type="email" id="email" value="godame1610@gmail.com" placeholder="Email Admin">
+  <input type="password" id="password" value="ame1610@" placeholder="Mật khẩu">
   <button onclick="login()">Đăng Nhập</button>
 </div>
 
@@ -56,7 +56,7 @@
 <script>
 // SUPABASE CONFIG
 const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'THAY_ANON_KEY_CỦA_BẠN'; // <--- Dán key anon vào đây
+const SUPABASE_ANON_KEY = 'THAY_ANON_KEY_CỦA_BẠN'; // <--- Dán chuỗi anon key vào đây
 const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function checkAuth() {
