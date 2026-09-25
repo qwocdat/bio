@@ -1,208 +1,156 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Bio</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      background-color: #0a0a0c;
-      color: #f3f4f6;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .admin-card {
-      width: 100%;
-      max-width: 480px;
-      background: rgba(255, 255, 255, 0.03);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 28px;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    h2 {
-      text-align: center;
-      font-size: 1.4rem;
-      margin-bottom: 8px;
-      color: #8b5cf6;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    label {
-      font-size: 0.9rem;
-      color: #9ca3af;
-      font-weight: 500;
-    }
-
-    input, textarea {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #fff;
-      padding: 12px 14px;
-      border-radius: 12px;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    input:focus, textarea:focus {
-      border-color: #8b5cf6;
-    }
-
-    button {
-      background: #8b5cf6;
-      color: #fff;
-      border: none;
-      padding: 14px;
-      border-radius: 12px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.2s ease, transform 0.1s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    button:hover {
-      background: #7c3aed;
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    #status-msg {
-      text-align: center;
-      font-size: 0.85rem;
-      min-height: 20px;
-    }
-
-    .success { color: #10b981; }
-    .error { color: #ef4444; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Dashboard — DIGITALSMOD</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body { background: #0a0b10; color: #eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
+  h2, h3 { margin-top: 0; }
+  input, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: #161822; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
+  button { background: linear-gradient(135deg, #3e63e0, #8a5cf6); cursor: pointer; border: none; font-weight: bold; margin-top: 10px; }
+  button:active { transform: scale(0.98); }
+  .box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
+  .hidden { display: none; }
+  .link-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .del-btn { width: auto; padding: 6px 12px; background: #e53935; margin: 0; font-size: 0.75rem; }
+</style>
 </head>
 <body>
 
-  <div class="admin-card">
-    <h2><i class="fa-solid fa-sliders"></i> QUẢN TRỊ TRANG BIO</h2>
+<h2>Quản Trị Bio & Storage</h2>
 
-    <div class="form-group">
-      <label>Tên hiển thị</label>
-      <input type="text" id="edit-name" placeholder="Nhập tên của bạn...">
-    </div>
+<!-- Box Đăng Nhập -->
+<div id="login-box" class="box">
+  <h3>Đăng nhập Admin</h3>
+  <input type="email" id="email" placeholder="Email Admin">
+  <input type="password" id="password" placeholder="Mật khẩu">
+  <button onclick="login()">Đăng Nhập</button>
+</div>
 
-    <div class="form-group">
-      <label>Mô tả / Bio</label>
-      <textarea id="edit-bio" rows="3" placeholder="Nhập phần giới thiệu ngắn..."></textarea>
-    </div>
+<!-- Box Quản Lý -->
+<div id="admin-box" class="box hidden">
+  <button onclick="logout()" style="background:#e53935; margin-bottom: 20px;">Đăng Xuất</button>
 
-    <div class="form-group">
-      <label>Link Ảnh Avatar (URL)</label>
-      <input type="text" id="edit-avatar" placeholder="https://i.imgur.com/example.png">
-    </div>
+  <h3>1. Thêm Nút Bấm Mới</h3>
+  <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
+  <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
+  <input type="text" id="url" placeholder="Đường dẫn URL">
+  <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
+  <button onclick="addLink()">Thêm Nút Bấm</button>
 
-    <button id="btn-save">
-      <i class="fa-solid fa-floppy-disk"></i> LƯU TRANG BIO
-    </button>
+  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
 
-    <div id="status-msg"></div>
-  </div>
+  <h3>2. Danh Sách Nút Hiện Tại</h3>
+  <div id="admin-links-list">Đang tải...</div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, get, child, set } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
 
-    // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
-      authDomain: "taikhoan-fc704.firebaseapp.com",
-      databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "taikhoan-fc704",
-      storageBucket: "taikhoan-fc704.firebasestorage.app",
-      messagingSenderId: "867203109533",
-      appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74",
-      measurementId: "G-PQDSS2N5XE"
-    };
+  <h3>3. Upload & Lấy Link Ảnh</h3>
+  <input type="file" id="file-input" accept="image/*">
+  <button onclick="uploadImage()">Tải Ảnh Lên Storage</button>
+  <div id="upload-result" style="margin-top: 10px; word-break: break-all;"></div>
+</div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const KEY = "my_bio";
+<script>
+// SUPABASE CONFIG
+const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
+const SUPABASE_ANON_KEY = 'THAY_ANON_KEY_CỦA_BẠN'; // <--- Dán key anon vào đây
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const nameInput = document.getElementById('edit-name');
-    const bioInput = document.getElementById('edit-bio');
-    const avatarInput = document.getElementById('edit-avatar');
-    const btnSave = document.getElementById('btn-save');
-    const statusMsg = document.getElementById('status-msg');
+async function checkAuth() {
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    document.getElementById('login-box').classList.add('hidden');
+    document.getElementById('admin-box').classList.remove('hidden');
+    loadAdminLinks();
+  }
+}
 
-    // 1. Tự động nạp dữ liệu cũ khi mở trang
-    async function loadCurrentBio() {
-      statusMsg.className = '';
-      statusMsg.innerText = "Đang tải dữ liệu...";
-      try {
-        const snap = await get(child(ref(db), `profiles/${KEY}`));
-        if (snap.exists()) {
-          const data = snap.val();
-          nameInput.value = data.name || '';
-          bioInput.value = data.bio || '';
-          avatarInput.value = data.avatar || '';
-          statusMsg.innerText = "";
-        } else {
-          statusMsg.innerText = "Chưa có dữ liệu, hãy nhập thông tin mới!";
-        }
-      } catch (err) {
-        statusMsg.className = 'error';
-        statusMsg.innerText = "Lỗi kết nối Firebase: " + err.message;
-      }
-    }
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  if (error) alert('Lỗi đăng nhập: ' + error.message);
+  else checkAuth();
+}
 
-    // 2. Lưu thông tin mới khi nhấn nút
-    btnSave.addEventListener('click', async () => {
-      statusMsg.className = '';
-      statusMsg.innerText = "Đang lưu...";
+async function logout() {
+  await db.auth.signOut();
+  location.reload();
+}
 
-      const payload = {
-        name: nameInput.value.trim(),
-        bio: bioInput.value.trim(),
-        avatar: avatarInput.value.trim()
-      };
+async function addLink() {
+  const title = document.getElementById('title').value;
+  const subtitle = document.getElementById('subtitle').value;
+  const url = document.getElementById('url').value;
+  const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
 
-      try {
-        await set(ref(db, `profiles/${KEY}`), payload);
-        statusMsg.className = 'success';
-        statusMsg.innerText = "✓ Lưu thông tin thành công!";
-      } catch (err) {
-        statusMsg.className = 'error';
-        statusMsg.innerText = "✕ Lỗi khi lưu: " + err.message;
-      }
-    });
+  if(!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
 
-    loadCurrentBio();
-  </script>
+  const { error } = await db.from('links').insert([{ title, subtitle, url, sort_order }]);
+  if (error) alert('Lỗi: ' + error.message);
+  else {
+    alert('Đã thêm nút mới thành công!');
+    document.getElementById('title').value = '';
+    document.getElementById('subtitle').value = '';
+    document.getElementById('url').value = '';
+    loadAdminLinks();
+  }
+}
+
+async function loadAdminLinks() {
+  const { data } = await db.from('links').select('*').order('sort_order', { ascending: true });
+  const container = document.getElementById('admin-links-list');
+  container.innerHTML = '';
+  
+  if(!data || data.length === 0) {
+    container.innerHTML = '<small>Chưa có dữ liệu</small>';
+    return;
+  }
+
+  data.forEach(item => {
+    container.innerHTML += `
+      <div class="link-item">
+        <div>
+          <strong>${item.title}</strong><br>
+          <small style="color:#aaa">${item.url}</small>
+        </div>
+        <button class="del-btn" onclick="deleteLink(${item.id})">Xóa</button>
+      </div>
+    `;
+  });
+}
+
+async function deleteLink(id) {
+  if(confirm('Bạn có chắc muốn xóa nút này?')) {
+    await db.from('links').delete().eq('id', id);
+    loadAdminLinks();
+  }
+}
+
+async function uploadImage() {
+  const fileInput = document.getElementById('file-input');
+  const file = fileInput.files[0];
+  if (!file) return alert('Vui lòng chọn 1 ảnh!');
+
+  const fileName = `${Date.now()}_${file.name}`;
+  const { data, error } = await db.storage.from('uploads').upload(fileName, file);
+
+  if (error) {
+    alert('Lỗi upload: ' + error.message);
+  } else {
+    const { data: publicUrlData } = db.storage.from('uploads').getPublicUrl(fileName);
+    const url = publicUrlData.publicUrl;
+    document.getElementById('upload-result').innerHTML = `
+      <p style="font-size:0.8rem; color:#4caf50;">Upload thành công! Link ảnh:</p>
+      <input type="text" value="${url}" readonly onclick="this.select()">
+    `;
+  }
+}
+
+checkAuth();
+</script>
 </body>
 </html>
