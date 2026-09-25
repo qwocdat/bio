@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
+<!-- Supabase SDK CDN chuẩn -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
 :root{
   box-sizing:border-box;
@@ -19,12 +21,7 @@
   padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
 }
 
-*{
-  box-sizing:border-box;
-  -webkit-tap-highlight-color: transparent;
-  user-select: none; -webkit-user-select: none;
-}
-
+*{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 html,body{height:100%}
 body{
   margin:0; font-family:'Plus Jakarta Sans',system-ui,sans-serif; color:var(--text);
@@ -42,7 +39,6 @@ body{
   box-shadow:var(--glass-shadow);
 }
 
-/* Gate màn hình chờ */
 #gate{
   position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(circle at 50% 30%, var(--bg2), var(--bg) 70%);
@@ -134,26 +130,26 @@ body{
 </div>
 
 <script>
-// SUPABASE API CONFIG
-const API_URL = 'https://pooenvxslutetbllasvi.supabase.co/rest/v1';
-const API_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
+// CẤU HÌNH SUPABASE HOÀN CHỈNH
+const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
+const SUPABASE_ANON_KEY = 'EyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBvb2VudnhzbHV0ZXRibGxhc3ZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzMzkwODQsImV4cCI6MjEwNTkxNTA4NH0.2UWFfFV9Rejv2mDgyyZYspOou_iSmPB_s_SUXtn8QPY';
 
-// Bấm Click To Enter
+const { createClient } = window.supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Event Gate Click
 document.getElementById('gate').addEventListener('click', function() {
   this.classList.add('hide');
   document.getElementById('app').classList.add('show');
 });
 
-// Fetch danh sách nút trực tiếp qua HTTP REST API
+// Lấy danh mục liên kết từ CSDL
 async function fetchLinks() {
   const container = document.getElementById('links-container');
   try {
-    const res = await fetch(`${API_URL}/links?select=*&order=sort_order.asc`, {
-      headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${API_KEY}` }
-    });
+    const { data, error } = await db.from('links').select('*').order('sort_order', { ascending: true });
     
-    if (!res.ok) throw new Error('Không thể tải dữ liệu');
-    const data = await res.json();
+    if (error) throw error;
 
     if (!data || data.length === 0) {
       container.innerHTML = '<p style="font-size:0.8rem; color:var(--text-2);">Chưa có liên kết nào</p>';
@@ -200,7 +196,7 @@ function bindRipples() {
 
 fetchLinks();
 
-// Canvas Snowflake
+// Tuyết rơi Canvas
 const canvas = document.getElementById('fxCanvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
