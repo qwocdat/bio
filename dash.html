@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard — DIGITALSMOD</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   body { background: #0a0b10; color: #eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
   h2, h3 { margin-top: 0; }
@@ -21,16 +20,18 @@
 
 <h2>Quản Trị Bio & Storage</h2>
 
-<!-- Box Đăng Nhập -->
+<!-- Form Đăng Nhập (Đã chặn Autofill) -->
 <div id="login-box" class="box">
   <h3>Đăng nhập Admin</h3>
-  <input type="email" id="email" placeholder="Nhập Email Admin">
-  <input type="password" id="password" placeholder="Nhập Mật khẩu">
-  <button id="loginBtn">Đăng Nhập</button>
+  <form onsubmit="return false;" autocomplete="off">
+    <input type="text" id="email" autocomplete="none" placeholder="Nhập Email Admin">
+    <input type="password" id="password" autocomplete="new-password" placeholder="Nhập Mật khẩu">
+    <button type="button" id="loginBtn">Đăng Nhập</button>
+  </form>
   <div id="login-msg" style="color:#e53935; font-size:0.8rem; margin-top:8px;"></div>
 </div>
 
-<!-- Box Quản Lý -->
+<!-- Form Quản Lý -->
 <div id="admin-box" class="box hidden">
   <button id="logoutBtn" style="background:#e53935; margin-bottom: 20px;">Đăng Xuất</button>
 
@@ -55,20 +56,33 @@
 </div>
 
 <script>
-// SUPABASE CONFIG - Cấu hình trực tiếp
-const SUPABASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
-const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const BASE_URL = 'https://pooenvxslutetbllasvi.supabase.co';
+const API_URL = `${BASE_URL}/rest/v1`;
+const AUTH_URL = `${BASE_URL}/auth/v1`;
+const STORAGE_URL = `${BASE_URL}/storage/v1`;
+const API_KEY = 'sb_publishable_shHGyoqUIPREbSB94Ac5ow_K1Q0ErxO';
 
-async function checkAuth() {
-  const { data: { session } } = await db.auth.getSession();
-  if (session) {
+let authToken = localStorage.getItem('sb_access_token') || '';
+
+// Xóa ô nhập liệu khi vừa load trang để tránh trình duyệt tự điền
+window.addEventListener('load', () => {
+  document.getElementById('email').value = '';
+  document.getElementById('password').value = '';
+  checkAuth();
+});
+
+function checkAuth() {
+  if (authToken) {
     document.getElementById('login-box').classList.add('hidden');
     document.getElementById('admin-box').classList.remove('hidden');
     loadAdminLinks();
+  } else {
+    document.getElementById('login-box').classList.remove('hidden');
+    document.getElementById('admin-box').classList.add('hidden');
   }
 }
 
+// Xử lý Đăng Nhập trực tiếp
 document.getElementById('loginBtn').onclick = async function() {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -80,21 +94,40 @@ document.getElementById('loginBtn').onclick = async function() {
   }
 
   msg.innerText = "Đang xác thực...";
-  const { error } = await db.auth.signInWithPassword({ email, password });
-  
-  if (error) {
-    msg.innerText = "Lỗi: " + error.message;
-  } else {
-    msg.innerText = "";
-    checkAuth();
+
+  try {
+    const res = await fetch(`${AUTH_URL}/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_KEY
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      msg.innerText = "Lỗi: " + (data.error_description || data.msg || 'Thông tin không chính xác');
+    } else {
+      msg.innerText = "";
+      authToken = data.access_token;
+      localStorage.setItem('sb_access_token', authToken);
+      checkAuth();
+    }
+  } catch (err) {
+    msg.innerText = "Lỗi kết nối máy chủ";
   }
 };
 
-document.getElementById('logoutBtn').onclick = async function() {
-  await db.auth.signOut();
+// Đăng xuất
+document.getElementById('logoutBtn').onclick = function() {
+  authToken = '';
+  localStorage.removeItem('sb_access_token');
   location.reload();
 };
 
+// Thêm nút mới
 document.getElementById('addBtn').onclick = async function() {
   const title = document.getElementById('title').value;
   const subtitle = document.getElementById('subtitle').value;
@@ -103,68 +136,112 @@ document.getElementById('addBtn').onclick = async function() {
 
   if(!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
 
-  const { error } = await db.from('links').insert([{ title, subtitle, url, sort_order }]);
-  if (error) alert('Lỗi: ' + error.message);
-  else {
-    alert('Đã thêm nút mới thành công!');
-    document.getElementById('title').value = '';
-    document.getElementById('subtitle').value = '';
-    document.getElementById('url').value = '';
-    loadAdminLinks();
+  try {
+    const res = await fetch(`${API_URL}/links`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': API_KEY,
+        'Authorization': `Bearer ${authToken}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ title, subtitle, url, sort_order })
+    });
+
+    if(!res.ok) {
+      const err = await res.json();
+      alert('Lỗi: ' + (err.message || 'Chưa được cấp quyền Admin'));
+    } else {
+      alert('Đã thêm nút mới thành công!');
+      document.getElementById('title').value = '';
+      document.getElementById('subtitle').value = '';
+      document.getElementById('url').value = '';
+      loadAdminLinks();
+    }
+  } catch(e) {
+    alert('Thao tác thất bại!');
   }
 };
 
+// Load danh sách nút
 async function loadAdminLinks() {
-  const { data } = await db.from('links').select('*').order('sort_order', { ascending: true });
   const container = document.getElementById('admin-links-list');
-  container.innerHTML = '';
-  
-  if(!data || data.length === 0) {
-    container.innerHTML = '<small>Chưa có dữ liệu</small>';
-    return;
-  }
+  try {
+    const res = await fetch(`${API_URL}/links?select=*&order=sort_order.asc`, {
+      headers: { 'apikey': API_KEY, 'Authorization': `Bearer ${API_KEY}` }
+    });
+    const data = await res.json();
+    container.innerHTML = '';
 
-  data.forEach(item => {
-    container.innerHTML += `
-      <div class="link-item">
-        <div>
-          <strong>${item.title}</strong><br>
-          <small style="color:#aaa">${item.url}</small>
+    if (!data || data.length === 0) {
+      container.innerHTML = '<small>Chưa có dữ liệu</small>';
+      return;
+    }
+
+    data.forEach(item => {
+      container.innerHTML += `
+        <div class="link-item">
+          <div>
+            <strong>${item.title}</strong><br>
+            <small style="color:#aaa">${item.url}</small>
+          </div>
+          <button class="del-btn" onclick="deleteLink(${item.id})">Xóa</button>
         </div>
-        <button class="del-btn" onclick="deleteLink(${item.id})">Xóa</button>
-      </div>
-    `;
-  });
+      `;
+    });
+  } catch(e) {
+    container.innerHTML = '<small>Lỗi tải danh sách</small>';
+  }
 }
 
+// Xóa nút
 window.deleteLink = async function(id) {
   if(confirm('Bạn có chắc muốn xóa nút này?')) {
-    await db.from('links').delete().eq('id', id);
-    loadAdminLinks();
+    const res = await fetch(`${API_URL}/links?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': API_KEY,
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    if(res.ok) loadAdminLinks();
+    else alert('Lỗi khi xóa!');
   }
 };
 
+// Upload ảnh lên Bucket 'uploads'
 document.getElementById('uploadBtn').onclick = async function() {
   const fileInput = document.getElementById('file-input');
   const file = fileInput.files[0];
   if (!file) return alert('Vui lòng chọn 1 ảnh!');
 
   const fileName = `${Date.now()}_${file.name}`;
-  const { data, error } = await db.storage.from('uploads').upload(fileName, file);
 
-  if (error) {
-    alert('Lỗi upload: ' + error.message);
-  } else {
-    const { data: publicUrlData } = db.storage.from('uploads').getPublicUrl(fileName);
-    const url = publicUrlData.publicUrl;
-    document.getElementById('upload-result').innerHTML = `
-      <p style="font-size:0.8rem; color:#4caf50;">Upload thành công! Link ảnh:</p>
-      <input type="text" value="${url}" readonly onclick="this.select()">
-    `;
+  try {
+    const res = await fetch(`${STORAGE_URL}/object/uploads/${fileName}`, {
+      method: 'POST',
+      headers: {
+        'apikey': API_KEY,
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': file.type
+      },
+      body: file
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Lỗi upload: ' + (err.message || 'Kiểm tra lại Bucket uploads'));
+    } else {
+      const publicUrl = `${STORAGE_URL}/object/public/uploads/${fileName}`;
+      document.getElementById('upload-result').innerHTML = `
+        <p style="font-size:0.8rem; color:#4caf50;">Upload thành công! Link ảnh công khai:</p>
+        <input type="text" value="${publicUrl}" readonly onclick="this.select()">
+      `;
+    }
+  } catch(e) {
+    alert('Upload thất bại!');
   }
 };
-
-checkAuth();
 </script>
 </body>
 </html>
