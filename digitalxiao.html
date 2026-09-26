@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>DIGITALSMOD</title>
-<meta name="description" content=" DIGITALSMOD">
+<title>DIGITALSMOD BIO</title>
+<meta name="description" content="Bio link chính thức - DIGITALSMOD">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+<!-- Firebase SDK Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 
@@ -57,10 +58,13 @@ html,body{ height:100%; margin:0; font-family:'Plus Jakarta Sans',system-ui,sans
 .soc{ aspect-ratio:1; border-radius:16px; display:flex; align-items:center; justify-content:center; cursor: pointer; text-decoration: none; font-size:1.1rem;}
 .empty-msg,.err-msg{font-size:.8rem; color:var(--text-2); text-align:left;}
 .err-msg{color:#ff8a80;}
+.conn-status { position: fixed; top: 10px; right: 10px; font-size: 0.7rem; padding: 4px 8px; border-radius: 12px; z-index: 100; display: none; }
+.conn-offline { display: block; background: rgba(229, 57, 53, 0.8); color: white; }
 </style>
 </head>
 <body>
 
+<div id="connStatus" class="conn-status">Đang mất kết nối...</div>
 <canvas id="fxCanvas"></canvas>
 
 <div id="app">
@@ -87,7 +91,7 @@ html,body{ height:100%; margin:0; font-family:'Plus Jakarta Sans',system-ui,sans
 </div>
 
 <script>
-// ====== CẤU HÌNH FIREBASE ======
+// ====== CẤU HÌNH FIREBASE CHÍNH THỨC ======
 const firebaseConfig = {
   apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
   authDomain: "quocdat-396fe.firebaseapp.com",
@@ -97,15 +101,43 @@ const firebaseConfig = {
   messagingSenderId: "685476439350",
   appId: "1:685476439350:web:949054ecba7f0a0c383f97"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-function escapeHtml(str){
+// UTILS: SANITIZE & VALIDATION
+function escapeHtml(str) {
   return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-// ====== PROFILE (đọc /profile) ======
+function sanitizeUrl(str) {
+  if (!str) return '#';
+  const clean = String(str).trim();
+  if (/^(https?:\/\/)/i.test(clean)) return clean;
+  return '#';
+}
+
+// MONITOR CONNECTION
+db.ref('.info/connected').on('value', snap => {
+  const connEl = document.getElementById('connStatus');
+  if (snap.val() === false) {
+    connEl.classList.add('conn-offline');
+  } else {
+    connEl.classList.remove('conn-offline');
+  }
+});
+
+// TIMEOUT FALLBACK FOR INITIAL LOAD
+const loadTimeout = setTimeout(() => {
+  const lContainer = document.getElementById('links-container');
+  if (lContainer && lContainer.textContent.includes('Đang tải dữ liệu...')) {
+    lContainer.innerHTML = '<p class="err-msg">Kết nối chậm hoặc có lỗi xảy ra. Vui lòng thử lại sau.</p>';
+  }
+}, 10000);
+
+// ====== READ PROFILE ======
 db.ref('profile').on('value', snap => {
+  clearTimeout(loadTimeout);
   const p = snap.val() || {};
   const name = p.name || 'DIGITALSMOD';
   document.getElementById('p-name').textContent = name;
@@ -114,92 +146,148 @@ db.ref('profile').on('value', snap => {
   document.getElementById('p-badge').style.display = p.verified ? 'flex' : 'none';
 
   const avatarEl = document.getElementById('avatarImg');
-  if (p.avatar) {
-    avatarEl.style.backgroundImage = `url('${p.avatar.replace(/'/g, "%27")}')`;
-    avatarEl.textContent = '';
+  const safeAvatarUrl = sanitizeUrl(p.avatar);
+  if (safeAvatarUrl !== '#') {
+    const img = new Image();
+    img.onload = () => {
+      avatarEl.style.backgroundImage = `url('${safeAvatarUrl.replace(/'/g, "%27")}')`;
+      avatarEl.textContent = '';
+    };
+    img.onerror = () => {
+      avatarEl.style.backgroundImage = 'none';
+      avatarEl.textContent = name.trim().charAt(0).toUpperCase() || '?';
+    };
+    img.src = safeAvatarUrl;
   } else {
     avatarEl.style.backgroundImage = 'none';
     avatarEl.textContent = name.trim().charAt(0).toUpperCase() || '?';
   }
-}, () => {
-  document.getElementById('p-name').textContent = 'Lỗi tải hồ sơ';
+}, err => {
+  console.error('[Firebase Error - Profile]:', err);
+  document.getElementById('p-name').textContent = 'Không thể tải hồ sơ';
 });
 
-// ====== SOCIAL ICONS (đọc /socials) ======
+// ====== READ SOCIALS ======
 db.ref('socials').on('value', snap => {
   const data = snap.val();
   const grid = document.getElementById('soc-grid');
   const title = document.getElementById('soc-title');
   grid.innerHTML = '';
-  if (!data) { title.style.display = 'none'; return; }
-  title.style.display = 'block';
+  
+  if (!data || typeof data !== 'object') { 
+    title.style.display = 'none'; 
+    return; 
+  }
+  
+  const validItems = Object.values(data).filter(s => s && sanitizeUrl(s.url) !== '#');
+  if (validItems.length === 0) {
+    title.style.display = 'none';
+    return;
+  }
 
-  Object.values(data).forEach(s => {
+  title.style.display = 'block';
+  validItems.forEach(s => {
     const a = document.createElement('a');
     a.className = 'soc glass btn-fx';
-    a.href = s.url || '#';
+    a.href = sanitizeUrl(s.url);
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.title = s.label || '';
     a.textContent = s.icon || (s.label ? s.label.charAt(0).toUpperCase() : '?');
     grid.appendChild(a);
   });
+}, err => {
+  console.error('[Firebase Error - Socials]:', err);
+  document.getElementById('soc-title').style.display = 'none';
 });
 
-// ====== LINKS (đọc /links, escape HTML, đếm click) ======
+// ====== READ LINKS & TRANSACTION CLICK ======
 const linksContainer = document.getElementById('links-container');
-db.ref('links').on('value', (snapshot) => {
+db.ref('links').on('value', snapshot => {
+  clearTimeout(loadTimeout);
   const data = snapshot.val();
   linksContainer.innerHTML = '';
 
-  if (!data) {
+  if (!data || typeof data !== 'object') {
     linksContainer.innerHTML = '<p class="empty-msg">Chưa có liên kết nào</p>';
     return;
   }
 
-  const linkList = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+  const linkList = Object.keys(data)
+    .map(key => ({ id: key, ...data[key] }))
+    .filter(item => item && typeof item === 'object');
+
+  if (linkList.length === 0) {
+    linksContainer.innerHTML = '<p class="empty-msg">Chưa có liên kết nào</p>';
+    return;
+  }
+
   linkList.sort((a, b) => (parseInt(a.sort_order) || 0) - (parseInt(b.sort_order) || 0));
 
   const frag = document.createDocumentFragment();
   linkList.forEach(item => {
+    const safeUrl = sanitizeUrl(item.url);
     const a = document.createElement('a');
-    a.href = item.url || '#';
+    a.href = safeUrl;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.className = 'link-btn glass btn-fx';
+    
     a.innerHTML = `
       <div class="link-ico">
         <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
       </div>
       <div class="link-meta">
-        <span>${escapeHtml(item.title)}</span>
+        <span>${escapeHtml(item.title || 'Liên kết')}</span>
         <small>${escapeHtml(item.subtitle || '')}</small>
       </div>
-      <div class="link-clicks">${item.clicks || 0}👁</div>
+      <div class="link-clicks">${parseInt(item.clicks) || 0}👁</div>
     `;
-    a.addEventListener('click', () => {
-      db.ref(`links/${item.id}/clicks`).transaction(c => (c || 0) + 1);
+
+    a.addEventListener('click', (e) => {
+      if (safeUrl === '#') return;
+      db.ref(`links/${item.id}/clicks`).transaction(current => (current || 0) + 1, (error) => {
+        if (error) console.error('[Firebase Transaction Error]:', error);
+      });
     });
+
     frag.appendChild(a);
   });
   linksContainer.appendChild(frag);
-}, () => {
-  linksContainer.innerHTML = '<p class="err-msg">Lỗi: chưa mở Rules Firebase cho phép đọc (read) tại node "links".</p>';
+}, err => {
+  console.error('[Firebase Error - Links]:', err);
+  if (err.code === 'PERMISSION_DENIED') {
+    linksContainer.innerHTML = '<p class="err-msg">Lỗi: Không có quyền truy cập dữ liệu.</p>';
+  } else {
+    linksContainer.innerHTML = '<p class="err-msg">Lỗi tải dữ liệu liên kết.</p>';
+  }
 });
 
-// ====== HIỆU ỨNG TUYẾT RƠI ======
+// ====== CANVAS SNOW EFFECT ======
 const canvas = document.getElementById('fxCanvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
-window.addEventListener('resize', () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; });
-const snowFlakes = Array.from({length:50}, () => ({ x: Math.random()*width, y: Math.random()*height, r: Math.random()*2+1, d: Math.random()+0.5 }));
+
+window.addEventListener('resize', () => { 
+  width = canvas.width = window.innerWidth; 
+  height = canvas.height = window.innerHeight; 
+});
+
+const snowFlakes = Array.from({length: 50}, () => ({ 
+  x: Math.random() * width, 
+  y: Math.random() * height, 
+  r: Math.random() * 2 + 1, 
+  d: Math.random() + 0.5 
+}));
+
 function draw() {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.beginPath();
   snowFlakes.forEach(p => {
-    ctx.moveTo(p.x, p.y); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.moveTo(p.x, p.y); 
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     p.y += p.d;
     if (p.y > height) { p.y = -10; p.x = Math.random() * width; }
   });
