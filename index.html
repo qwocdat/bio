@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DIGITALSMOD BIO</title>
+<meta name="description" content="DIGITALSMOD">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -28,9 +29,12 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.4; transform: scale(0.98); }
   }
+  noscript { color:#f2f3f6; font-family: system-ui, sans-serif; position:fixed; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; z-index:20; background:#0a0b10; }
 </style>
 </head>
 <body>
+
+<noscript><div>Vui lòng bật JavaScript để tiếp tục, hoặc <a href="digitalxiao.html" style="color:#8a5cf6">bấm vào đây</a>.</div></noscript>
 
 <canvas id="fxCanvas"></canvas>
 
@@ -39,7 +43,10 @@
 </div>
 
 <script>
+let navigated = false;
 function goNext() {
+  if (navigated) return;
+  navigated = true;
   window.location.href = "digitalxiao.html";
 }
 
@@ -47,6 +54,7 @@ const canvas = document.getElementById('fxCanvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
+let running = true;
 
 window.onresize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
 
@@ -56,6 +64,7 @@ for (let i = 0; i < 50; i++) {
 }
 
 function draw() {
+  if (!running) return;
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.beginPath();
@@ -68,6 +77,8 @@ function draw() {
   requestAnimationFrame(draw);
 }
 draw();
+
+document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) draw(); });
 </script>
 </body>
 </html>
