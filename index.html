@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>DIGITALSMOD BIO</title>
-<meta name="description" content="DIGITALSMOD">
+<meta name="description" content="Bio link chính thức - DIGITALSMOD">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -38,7 +38,7 @@
 
 <canvas id="fxCanvas"></canvas>
 
-<div id="gate" onclick="goNext()">
+<div id="gate" id="enterBtn">
   <div class="gate-text">CLICK TO ENTER</div>
 </div>
 
@@ -50,18 +50,26 @@ function goNext() {
   window.location.href = "digitalxiao.html";
 }
 
+document.getElementById('gate').addEventListener('click', goNext);
+
 const canvas = document.getElementById('fxCanvas');
 const ctx = canvas.getContext('2d');
 let width = canvas.width = window.innerWidth;
 let height = canvas.height = window.innerHeight;
 let running = true;
+let animFrameId = null;
 
-window.onresize = () => { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; };
+window.addEventListener('resize', () => { 
+  width = canvas.width = window.innerWidth; 
+  height = canvas.height = window.innerHeight; 
+});
 
-const snowFlakes = [];
-for (let i = 0; i < 50; i++) {
-  snowFlakes.push({ x: Math.random() * width, y: Math.random() * height, r: Math.random() * 2 + 1, d: Math.random() + 0.5 });
-}
+const snowFlakes = Array.from({length: 50}, () => ({
+  x: Math.random() * width,
+  y: Math.random() * height,
+  r: Math.random() * 2 + 1,
+  d: Math.random() + 0.5
+}));
 
 function draw() {
   if (!running) return;
@@ -69,16 +77,24 @@ function draw() {
   ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
   ctx.beginPath();
   snowFlakes.forEach(p => {
-    ctx.moveTo(p.x, p.y); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.moveTo(p.x, p.y); 
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
     p.y += p.d;
     if (p.y > height) { p.y = -10; p.x = Math.random() * width; }
   });
   ctx.fill();
-  requestAnimationFrame(draw);
+  animFrameId = requestAnimationFrame(draw);
 }
 draw();
 
-document.addEventListener('visibilitychange', () => { running = !document.hidden; if (running) draw(); });
+document.addEventListener('visibilitychange', () => { 
+  running = !document.hidden; 
+  if (running) {
+    draw();
+  } else if (animFrameId) {
+    cancelAnimationFrame(animFrameId);
+  }
+});
 </script>
 </body>
 </html>
