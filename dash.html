@@ -4,39 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard — Firebase</title>
+
+<!-- Firebase SDK Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
 <style>
   body{background:#0a0b10;color:#eee;font-family:system-ui,sans-serif;padding:20px;max-width:520px;margin:0 auto}
   input,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#161822;color:#fff;box-sizing:border-box;font-size:.9rem}
-  button{background:linear-gradient(135deg,#3e63e0,#8a5cf6);cursor:pointer;border:none;font-weight:bold;margin-top:10px}
+  button{background:linear-gradient(135deg,#3e63e0,#8a5cf6);cursor:pointer;border:none;font-weight:bold;margin-top:10px;transition:all .2s ease}
   button:active{transform:scale(.98)}
+  button:disabled{opacity:0.6;cursor:not-allowed;transform:none !important}
   button.secondary{background:#242736}
   button.del-btn{width:auto;padding:6px 12px;background:#e53935;margin:0;font-size:.75rem}
   button.edit-btn{width:auto;padding:6px 12px;background:#3a3d4d;margin:0 0 0 6px;font-size:.75rem}
   .box{background:rgba(255,255,255,.05);padding:20px;border-radius:18px;margin-bottom:20px;border:1px solid rgba(255,255,255,.1)}
   .link-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1);gap:8px}
   .actions{display:flex;flex-shrink:0}
-  #login-screen{max-width:340px;margin:80px auto 0}
+  #login-screen{max-width:340px;margin:80px auto 0;display:none}
   #app-screen{display:none}
-  .err{color:#ff8a80;font-size:.82rem;min-height:18px}
+  #auth-loading{text-align:center;padding:40px;color:#aaa}
+  .err{color:#ff8a80;font-size:.82rem;min-height:18px;margin-top:4px}
   .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
   .topbar button{width:auto;padding:8px 14px;margin:0;font-size:.8rem}
+  .toast { position: fixed; bottom: 20px; right: 20px; background: #2e7d32; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 0.85rem; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; display: none; }
+  .toast.error { background: #c62828; }
 </style>
 </head>
 <body>
 
+<div id="toast" class="toast"></div>
+
+<div id="auth-loading">Đang kiểm tra quyền truy cập...</div>
+
 <!-- MÀN HÌNH ĐĂNG NHẬP -->
 <div id="login-screen">
   <h2>Đăng nhập Quản trị</h2>
-  <input type="email" id="login-email" placeholder="Email quản trị">
-  <input type="password" id="login-pass" placeholder="Mật khẩu">
+  <input type="email" id="login-email" placeholder="Email quản trị" autocomplete="email">
+  <input type="password" id="login-pass" placeholder="Mật khẩu" autocomplete="current-password">
   <button type="button" id="loginBtn">Đăng nhập</button>
   <div class="err" id="login-err"></div>
 </div>
 
-<!-- MÀN HÌNH QUẢN TRỊ (chỉ hiện sau khi đăng nhập) -->
+<!-- MÀN HÌNH QUẢN TRỊ -->
 <div id="app-screen">
   <div class="topbar">
     <h2 style="margin:0">Quản Trị Bio</h2>
@@ -46,7 +57,7 @@
   <div class="box">
     <h3>Hồ Sơ (Profile)</h3>
     <input type="text" id="p-name" placeholder="Tên hiển thị">
-    <input type="text" id="p-avatar" placeholder="URL ảnh đại diện">
+    <input type="text" id="p-avatar" placeholder="URL ảnh đại diện (http://...)">
     <input type="text" id="p-bio" placeholder="Mô tả ngắn (bio)">
     <button type="button" id="saveProfileBtn">Lưu Hồ Sơ</button>
   </div>
@@ -55,7 +66,7 @@
     <h3>Mạng Xã Hội</h3>
     <input type="text" id="s-label" placeholder="Tên (VD: Discord)">
     <input type="text" id="s-icon" placeholder="Ký tự/emoji icon (VD: 🎮)">
-    <input type="text" id="s-url" placeholder="URL trang mạng xã hội">
+    <input type="text" id="s-url" placeholder="URL trang mạng xã hội (http://...)">
     <button type="button" id="addSocialBtn">Thêm Mạng Xã Hội</button>
     <div id="social-list"></div>
   </div>
@@ -65,7 +76,7 @@
     <input type="hidden" id="edit-id">
     <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
     <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
-    <input type="text" id="url" placeholder="Đường dẫn URL (bắt đầu http:// hoặc https://)">
+    <input type="text" id="url" placeholder="Đường dẫn URL (http:// hoặc https://)">
     <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
     <button type="button" id="addBtn">Thêm Nút Bấm</button>
     <button type="button" class="secondary" id="cancelEditBtn" style="display:none">Hủy sửa</button>
@@ -77,7 +88,7 @@
 </div>
 
 <script>
-// ====== CẤU HÌNH FIREBASE ======
+// ====== FIREBASE CONFIG CHÍNH THỨC ======
 const firebaseConfig = {
   apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
   authDomain: "quocdat-396fe.firebaseapp.com",
@@ -87,92 +98,294 @@ const firebaseConfig = {
   messagingSenderId: "685476439350",
   appId: "1:685476439350:web:949054ecba7f0a0c383f97"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// ====== AUTH GATE ======
+// UTILS
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = isError ? 'toast error' : 'toast';
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+function isValidUrl(str) {
+  if (!str) return false;
+  try {
+    const u = new URL(str.trim());
+    return u.protocol === 'http:' || u.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function setBtnState(btn, loading, defaultText) {
+  if (loading) {
+    btn.disabled = true;
+    btn.textContent = 'Đang xử lý...';
+  } else {
+    btn.disabled = false;
+    btn.textContent = defaultText;
+  }
+}
+
+// ====== AUTH GATEWAY ======
 auth.onAuthStateChanged(user => {
-  document.getElementById('login-screen').style.display = user ? 'none' : 'block';
-  document.getElementById('app-screen').style.display = user ? 'block' : 'none';
+  document.getElementById('auth-loading').style.display = 'none';
+  if (user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    loadDashboardData();
+  } else {
+    document.getElementById('login-screen').style.display = 'block';
+    document.getElementById('app-screen').style.display = 'none';
+  }
 });
 
 document.getElementById('loginBtn').onclick = () => {
   const email = document.getElementById('login-email').value.trim();
   const pass = document.getElementById('login-pass').value;
-  document.getElementById('login-err').textContent = '';
+  const errEl = document.getElementById('login-err');
+  const btn = document.getElementById('loginBtn');
+  
+  errEl.textContent = '';
+  if (!email || !pass) {
+    errEl.textContent = 'Vui lòng nhập đầy đủ Email và Mật khẩu.';
+    return;
+  }
+
+  setBtnState(btn, true, 'Đăng nhập');
   auth.signInWithEmailAndPassword(email, pass)
-    .catch(err => document.getElementById('login-err').textContent = 'Sai email hoặc mật khẩu.');
+    .catch(err => {
+      console.error('[Firebase Auth Error]:', err);
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errEl.textContent = 'Email hoặc mật khẩu không chính xác.';
+          break;
+        case 'auth/too-many-requests':
+          errEl.textContent = 'Quá nhiều lần thử thất bại. Vui lòng thử lại sau.';
+          break;
+        case 'auth/network-request-failed':
+          errEl.textContent = 'Lỗi kết nối mạng. Kiểm tra Internet của bạn.';
+          break;
+        default:
+          errEl.textContent = 'Đăng nhập thất bại: ' + err.message;
+      }
+    })
+    .finally(() => setBtnState(btn, false, 'Đăng nhập'));
 };
 
 document.getElementById('logoutBtn').onclick = () => auth.signOut();
 
-// ====== PROFILE ======
-db.ref('profile').on('value', snap => {
-  const p = snap.val() || {};
-  document.getElementById('p-name').value = p.name || '';
-  document.getElementById('p-avatar').value = p.avatar || '';
-  document.getElementById('p-bio').value = p.bio || '';
-});
+// ====== DASHBOARD REALTIME LISTENERS & ACTIONS ======
+let isProfileLoaded = false;
+
+function loadDashboardData() {
+  if (isProfileLoaded) return;
+  isProfileLoaded = true;
+
+  // PROFILE
+  db.ref('profile').on('value', snap => {
+    const p = snap.val() || {};
+    document.getElementById('p-name').value = p.name || '';
+    document.getElementById('p-avatar').value = p.avatar || '';
+    document.getElementById('p-bio').value = p.bio || '';
+  }, err => console.error('[Database Read Error - Profile]:', err));
+
+  // SOCIALS
+  db.ref('socials').on('value', snap => {
+    const data = snap.val();
+    const box = document.getElementById('social-list');
+    box.innerHTML = '';
+    if (!data) return;
+    
+    Object.entries(data).forEach(([id, s]) => {
+      const div = document.createElement('div');
+      div.className = 'link-item';
+      div.innerHTML = `<div>${escapeHtml(s.icon || '')} <strong>${escapeHtml(s.label || '')}</strong></div>`;
+      
+      const del = document.createElement('button');
+      del.className = 'del-btn'; 
+      del.textContent = 'Xóa';
+      del.onclick = () => {
+        if (confirm('Xóa mạng xã hội này?')) {
+          del.disabled = true;
+          db.ref(`socials/${id}`).remove()
+            .then(() => showToast('Đã xóa mạng xã hội'))
+            .catch(e => showToast('Xóa thất bại: ' + e.message, true));
+        }
+      };
+      
+      div.appendChild(del);
+      box.appendChild(div);
+    });
+  }, err => console.error('[Database Read Error - Socials]:', err));
+
+  // LINKS
+  db.ref('links').on('value', snapshot => {
+    const data = snapshot.val();
+    const container = document.getElementById('admin-links-list');
+    container.innerHTML = '';
+    if (!data) { 
+      container.innerHTML = '<small style="color:#aaa">Chưa có dữ liệu nút bấm nào</small>'; 
+      return; 
+    }
+
+    Object.entries(data)
+      .sort((a,b) => (parseInt(a[1].sort_order) || 0) - (parseInt(b[1].sort_order) || 0))
+      .forEach(([id, item]) => {
+        const div = document.createElement('div');
+        div.className = 'link-item';
+        div.innerHTML = `
+          <div>
+            <strong>${escapeHtml(item.title || '')}</strong><br>
+            <small style="color:#aaa">${escapeHtml(item.url || '')} · ${item.clicks || 0} clicks</small>
+          </div>
+        `;
+        
+        const actions = document.createElement('div');
+        actions.className = 'actions';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-btn'; 
+        editBtn.textContent = 'Sửa';
+        editBtn.onclick = () => {
+          document.getElementById('edit-id').value = id;
+          document.getElementById('title').value = item.title || '';
+          document.getElementById('subtitle').value = item.subtitle || '';
+          document.getElementById('url').value = item.url || '';
+          document.getElementById('sort_order').value = item.sort_order || 1;
+          document.getElementById('link-form-title').textContent = 'Sửa Nút Bấm';
+          document.getElementById('addBtn').textContent = 'Lưu Thay Đổi';
+          document.getElementById('cancelEditBtn').style.display = 'block';
+          window.scrollTo({top: 0, behavior: 'smooth'});
+        };
+        
+        const del = document.createElement('button');
+        del.className = 'del-btn'; 
+        del.textContent = 'Xóa';
+        del.onclick = () => {
+          if (confirm('Bạn có chắc chắn muốn xóa nút này?')) {
+            del.disabled = true;
+            db.ref(`links/${id}`).remove()
+              .then(() => showToast('Đã xóa nút bấm'))
+              .catch(e => showToast('Xóa thất bại: ' + e.message, true));
+          }
+        };
+
+        actions.appendChild(editBtn); 
+        actions.appendChild(del);
+        div.appendChild(actions);
+        container.appendChild(div);
+      });
+  }, err => {
+    console.error('[Database Read Error - Links]:', err);
+    document.getElementById('admin-links-list').innerHTML = '<small class="err">Lỗi đọc dữ liệu từ Firebase.</small>';
+  });
+}
+
+// SAVE PROFILE
 document.getElementById('saveProfileBtn').onclick = () => {
-  db.ref('profile').set({
+  const btn = document.getElementById('saveProfileBtn');
+  const avatarVal = document.getElementById('p-avatar').value.trim();
+  
+  if (avatarVal && !isValidUrl(avatarVal)) {
+    alert('URL ảnh đại diện không hợp lệ (phải bắt đầu bằng http:// hoặc https://)');
+    return;
+  }
+
+  setBtnState(btn, true, 'Lưu Hồ Sơ');
+  db.ref('profile').update({
     name: document.getElementById('p-name').value.trim(),
-    avatar: document.getElementById('p-avatar').value.trim(),
+    avatar: avatarVal,
     bio: document.getElementById('p-bio').value.trim()
-  }).then(() => alert('Đã lưu hồ sơ!'));
+  })
+  .then(() => showToast('Đã lưu hồ sơ thành công!'))
+  .catch(err => showToast('Lỗi lưu hồ sơ: ' + err.message, true))
+  .finally(() => setBtnState(btn, false, 'Lưu Hồ Sơ'));
 };
 
-// ====== SOCIALS ======
+// ADD SOCIAL
 document.getElementById('addSocialBtn').onclick = () => {
+  const btn = document.getElementById('addSocialBtn');
   const label = document.getElementById('s-label').value.trim();
   const icon = document.getElementById('s-icon').value.trim();
   const url = document.getElementById('s-url').value.trim();
+  
   if (!label || !url) return alert('Nhập đủ Tên và URL!');
-  db.ref('socials').push({ label, icon, url }).then(() => {
-    document.getElementById('s-label').value = '';
-    document.getElementById('s-icon').value = '';
-    document.getElementById('s-url').value = '';
-  });
+  if (!isValidUrl(url)) return alert('URL mạng xã hội không hợp lệ!');
+
+  setBtnState(btn, true, 'Thêm Mạng Xã Hội');
+  db.ref('socials').push({ label, icon, url })
+    .then(() => {
+      showToast('Đã thêm mạng xã hội!');
+      document.getElementById('s-label').value = '';
+      document.getElementById('s-icon').value = '';
+      document.getElementById('s-url').value = '';
+    })
+    .catch(err => showToast('Thêm thất bại: ' + err.message, true))
+    .finally(() => setBtnState(btn, false, 'Thêm Mạng Xã Hội'));
 };
-db.ref('socials').on('value', snap => {
-  const data = snap.val();
-  const box = document.getElementById('social-list');
-  box.innerHTML = '';
-  if (!data) return;
-  Object.entries(data).forEach(([id, s]) => {
-    const div = document.createElement('div');
-    div.className = 'link-item';
-    div.innerHTML = `<div>${s.icon || ''} <strong>${s.label}</strong></div>`;
-    const del = document.createElement('button');
-    del.className = 'del-btn'; del.textContent = 'Xóa';
-    del.onclick = () => confirm('Xóa mục này?') && db.ref(`socials/${id}`).remove();
-    div.appendChild(del);
-    box.appendChild(div);
-  });
-});
 
-// ====== LINKS (thêm / sửa / xóa) ======
-function isValidUrl(str){ try { const u = new URL(str); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; } }
-
+// ADD OR EDIT LINK (BẢO TỒN CLICKS KHÔNG BỊ RESET)
 document.getElementById('addBtn').onclick = () => {
+  const btn = document.getElementById('addBtn');
   const title = document.getElementById('title').value.trim();
   const subtitle = document.getElementById('subtitle').value.trim();
   const url = document.getElementById('url').value.trim();
-  const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
+  const sort_order = parseInt(document.getElementById('sort_order').value) || 1;
   const editId = document.getElementById('edit-id').value;
 
   if (!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
   if (!isValidUrl(url)) return alert('URL không hợp lệ, phải bắt đầu http:// hoặc https://');
 
-  const payload = { title, subtitle, url, sort_order, clicks: 0 };
-  const ref = editId ? db.ref(`links/${editId}`).update(payload) : db.ref('links').push(payload);
+  const defaultText = editId ? 'Lưu Thay Đổi' : 'Thêm Nút Bấm';
+  setBtnState(btn, true, defaultText);
 
-  ref.then(() => { alert(editId ? 'Đã cập nhật!' : 'Thêm nút mới thành công!'); resetForm(); })
-     .catch(err => alert('Lỗi: ' + err.message));
+  if (editId) {
+    // SỬA LINK: Sử dụng update() để GIỮ NGUYÊN field clicks hiện tại trong Database
+    db.ref(`links/${editId}`).update({
+      title,
+      subtitle,
+      url,
+      sort_order
+    })
+    .then(() => {
+      showToast('Đã cập nhật nút bấm!');
+      resetForm();
+    })
+    .catch(err => showToast('Lỗi cập nhật: ' + err.message, true))
+    .finally(() => setBtnState(btn, false, defaultText));
+  } else {
+    // THÊM MỚI LINK: Gán mặc định clicks = 0
+    db.ref('links').push({
+      title,
+      subtitle,
+      url,
+      sort_order,
+      clicks: 0
+    })
+    .then(() => {
+      showToast('Thêm nút bấm thành công!');
+      resetForm();
+    })
+    .catch(err => showToast('Lỗi thêm nút: ' + err.message, true))
+    .finally(() => setBtnState(btn, false, defaultText));
+  }
 };
 
 document.getElementById('cancelEditBtn').onclick = resetForm;
-function resetForm(){
+
+function resetForm() {
   document.getElementById('edit-id').value = '';
   document.getElementById('title').value = '';
   document.getElementById('subtitle').value = '';
@@ -182,45 +395,6 @@ function resetForm(){
   document.getElementById('addBtn').textContent = 'Thêm Nút Bấm';
   document.getElementById('cancelEditBtn').style.display = 'none';
 }
-
-db.ref('links').on('value', (snapshot) => {
-  const data = snapshot.val();
-  const container = document.getElementById('admin-links-list');
-  container.innerHTML = '';
-  if (!data) { container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>'; return; }
-
-  Object.entries(data).sort((a,b) => (a[1].sort_order||0)-(b[1].sort_order||0)).forEach(([id, item]) => {
-    const div = document.createElement('div');
-    div.className = 'link-item';
-    div.innerHTML = `
-      <div>
-        <strong>${item.title}</strong><br>
-        <small style="color:#aaa">${item.url} · ${item.clicks || 0} clicks</small>
-      </div>
-    `;
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-    const editBtn = document.createElement('button');
-    editBtn.className = 'edit-btn'; editBtn.textContent = 'Sửa';
-    editBtn.onclick = () => {
-      document.getElementById('edit-id').value = id;
-      document.getElementById('title').value = item.title || '';
-      document.getElementById('subtitle').value = item.subtitle || '';
-      document.getElementById('url').value = item.url || '';
-      document.getElementById('sort_order').value = item.sort_order || 1;
-      document.getElementById('link-form-title').textContent = 'Sửa Nút Bấm';
-      document.getElementById('addBtn').textContent = 'Lưu Thay Đổi';
-      document.getElementById('cancelEditBtn').style.display = 'block';
-      window.scrollTo({top:0, behavior:'smooth'});
-    };
-    const del = document.createElement('button');
-    del.className = 'del-btn'; del.textContent = 'Xóa';
-    del.onclick = () => confirm('Bạn có chắc chắn muốn xóa nút này?') && db.ref(`links/${id}`).remove();
-    actions.appendChild(editBtn); actions.appendChild(del);
-    div.appendChild(actions);
-    container.appendChild(div);
-  });
-});
 </script>
 </body>
 </html>
