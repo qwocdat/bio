@@ -4,97 +4,220 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Admin Dashboard — Firebase</title>
-
-<!-- Nạp Firebase SDK Compat -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-
 <style>
-  body { background: #0a0b10; color: #eee; font-family: system-ui, sans-serif; padding: 20px; max-width: 480px; margin: 0 auto; }
-  input, button { width: 100%; padding: 12px; margin: 6px 0; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: #161822; color: #fff; box-sizing: border-box; font-size: 0.9rem; }
-  button { background: linear-gradient(135deg, #3e63e0, #8a5cf6); cursor: pointer; border: none; font-weight: bold; margin-top: 10px; }
-  button:active { transform: scale(0.98); }
-  .box { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 18px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); }
-  .link-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-  .del-btn { width: auto; padding: 6px 12px; background: #e53935; margin: 0; font-size: 0.75rem; }
+  body{background:#0a0b10;color:#eee;font-family:system-ui,sans-serif;padding:20px;max-width:520px;margin:0 auto}
+  input,button{width:100%;padding:12px;margin:6px 0;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#161822;color:#fff;box-sizing:border-box;font-size:.9rem}
+  button{background:linear-gradient(135deg,#3e63e0,#8a5cf6);cursor:pointer;border:none;font-weight:bold;margin-top:10px}
+  button:active{transform:scale(.98)}
+  button.secondary{background:#242736}
+  button.del-btn{width:auto;padding:6px 12px;background:#e53935;margin:0;font-size:.75rem}
+  button.edit-btn{width:auto;padding:6px 12px;background:#3a3d4d;margin:0 0 0 6px;font-size:.75rem}
+  .box{background:rgba(255,255,255,.05);padding:20px;border-radius:18px;margin-bottom:20px;border:1px solid rgba(255,255,255,.1)}
+  .link-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.1);gap:8px}
+  .actions{display:flex;flex-shrink:0}
+  #login-screen{max-width:340px;margin:80px auto 0}
+  #app-screen{display:none}
+  .err{color:#ff8a80;font-size:.82rem;min-height:18px}
+  .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .topbar button{width:auto;padding:8px 14px;margin:0;font-size:.8rem}
 </style>
 </head>
 <body>
 
-<h2>Quản Trị Bio Firebase</h2>
+<!-- MÀN HÌNH ĐĂNG NHẬP -->
+<div id="login-screen">
+  <h2>Đăng nhập Quản trị</h2>
+  <input type="email" id="login-email" placeholder="Email quản trị">
+  <input type="password" id="login-pass" placeholder="Mật khẩu">
+  <button type="button" id="loginBtn">Đăng nhập</button>
+  <div class="err" id="login-err"></div>
+</div>
 
-<div class="box">
-  <h3>Thêm Nút Bấm Mới</h3>
-  <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
-  <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
-  <input type="text" id="url" placeholder="Đường dẫn URL">
-  <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
-  <button type="button" id="addBtn">Thêm Nút Bấm</button>
+<!-- MÀN HÌNH QUẢN TRỊ (chỉ hiện sau khi đăng nhập) -->
+<div id="app-screen">
+  <div class="topbar">
+    <h2 style="margin:0">Quản Trị Bio</h2>
+    <button type="button" class="secondary" id="logoutBtn">Đăng xuất</button>
+  </div>
 
-  <hr style="border-color:rgba(255,255,255,0.1); margin: 25px 0;">
+  <div class="box">
+    <h3>Hồ Sơ (Profile)</h3>
+    <input type="text" id="p-name" placeholder="Tên hiển thị">
+    <input type="text" id="p-avatar" placeholder="URL ảnh đại diện">
+    <input type="text" id="p-bio" placeholder="Mô tả ngắn (bio)">
+    <button type="button" id="saveProfileBtn">Lưu Hồ Sơ</button>
+  </div>
 
-  <h3>Danh Sách Nút Hiện Tại</h3>
-  <div id="admin-links-list">Đang tải...</div>
+  <div class="box">
+    <h3>Mạng Xã Hội</h3>
+    <input type="text" id="s-label" placeholder="Tên (VD: Discord)">
+    <input type="text" id="s-icon" placeholder="Ký tự/emoji icon (VD: 🎮)">
+    <input type="text" id="s-url" placeholder="URL trang mạng xã hội">
+    <button type="button" id="addSocialBtn">Thêm Mạng Xã Hội</button>
+    <div id="social-list"></div>
+  </div>
+
+  <div class="box">
+    <h3 id="link-form-title">Thêm Nút Bấm Mới</h3>
+    <input type="hidden" id="edit-id">
+    <input type="text" id="title" placeholder="Tiêu đề nút (VD: Website cá nhân)">
+    <input type="text" id="subtitle" placeholder="Mô tả phụ (VD: digitalsmod.site)">
+    <input type="text" id="url" placeholder="Đường dẫn URL (bắt đầu http:// hoặc https://)">
+    <input type="number" id="sort_order" placeholder="Thứ tự hiển thị (1, 2, 3...)" value="1">
+    <button type="button" id="addBtn">Thêm Nút Bấm</button>
+    <button type="button" class="secondary" id="cancelEditBtn" style="display:none">Hủy sửa</button>
+
+    <hr style="border-color:rgba(255,255,255,.1);margin:25px 0">
+    <h3>Danh Sách Nút Hiện Tại</h3>
+    <div id="admin-links-list">Đang tải...</div>
+  </div>
 </div>
 
 <script>
+// ====== CẤU HÌNH FIREBASE ======
 const firebaseConfig = {
-  apiKey: "AIzaSyDM5EOHtjhxrWvGxL7hegMi5n0TbdV9cpw",
-  authDomain: "taikhoan-fc704.firebaseapp.com",
-  databaseURL: "https://taikhoan-fc704-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "taikhoan-fc704",
-  storageBucket: "taikhoan-fc704.firebasestorage.app",
-  messagingSenderId: "867203109533",
-  appId: "1:867203109533:web:ec5b3b8efd2fee8df37a74"
+  apiKey: "AIzaSyAUuV5euNNLHE2Cf6tXzUHV-ChKwNF593Y",
+  authDomain: "quocdat-396fe.firebaseapp.com",
+  databaseURL: "https://quocdat-396fe-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "quocdat-396fe",
+  storageBucket: "quocdat-396fe.firebasestorage.app",
+  messagingSenderId: "685476439350",
+  appId: "1:685476439350:web:949054ecba7f0a0c383f97"
 };
-
 firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
 const db = firebase.database();
 
-document.getElementById('addBtn').onclick = function() {
+// ====== AUTH GATE ======
+auth.onAuthStateChanged(user => {
+  document.getElementById('login-screen').style.display = user ? 'none' : 'block';
+  document.getElementById('app-screen').style.display = user ? 'block' : 'none';
+});
+
+document.getElementById('loginBtn').onclick = () => {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-pass').value;
+  document.getElementById('login-err').textContent = '';
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(err => document.getElementById('login-err').textContent = 'Sai email hoặc mật khẩu.');
+};
+
+document.getElementById('logoutBtn').onclick = () => auth.signOut();
+
+// ====== PROFILE ======
+db.ref('profile').on('value', snap => {
+  const p = snap.val() || {};
+  document.getElementById('p-name').value = p.name || '';
+  document.getElementById('p-avatar').value = p.avatar || '';
+  document.getElementById('p-bio').value = p.bio || '';
+});
+document.getElementById('saveProfileBtn').onclick = () => {
+  db.ref('profile').set({
+    name: document.getElementById('p-name').value.trim(),
+    avatar: document.getElementById('p-avatar').value.trim(),
+    bio: document.getElementById('p-bio').value.trim()
+  }).then(() => alert('Đã lưu hồ sơ!'));
+};
+
+// ====== SOCIALS ======
+document.getElementById('addSocialBtn').onclick = () => {
+  const label = document.getElementById('s-label').value.trim();
+  const icon = document.getElementById('s-icon').value.trim();
+  const url = document.getElementById('s-url').value.trim();
+  if (!label || !url) return alert('Nhập đủ Tên và URL!');
+  db.ref('socials').push({ label, icon, url }).then(() => {
+    document.getElementById('s-label').value = '';
+    document.getElementById('s-icon').value = '';
+    document.getElementById('s-url').value = '';
+  });
+};
+db.ref('socials').on('value', snap => {
+  const data = snap.val();
+  const box = document.getElementById('social-list');
+  box.innerHTML = '';
+  if (!data) return;
+  Object.entries(data).forEach(([id, s]) => {
+    const div = document.createElement('div');
+    div.className = 'link-item';
+    div.innerHTML = `<div>${s.icon || ''} <strong>${s.label}</strong></div>`;
+    const del = document.createElement('button');
+    del.className = 'del-btn'; del.textContent = 'Xóa';
+    del.onclick = () => confirm('Xóa mục này?') && db.ref(`socials/${id}`).remove();
+    div.appendChild(del);
+    box.appendChild(div);
+  });
+});
+
+// ====== LINKS (thêm / sửa / xóa) ======
+function isValidUrl(str){ try { const u = new URL(str); return u.protocol === 'http:' || u.protocol === 'https:'; } catch { return false; } }
+
+document.getElementById('addBtn').onclick = () => {
   const title = document.getElementById('title').value.trim();
   const subtitle = document.getElementById('subtitle').value.trim();
   const url = document.getElementById('url').value.trim();
   const sort_order = parseInt(document.getElementById('sort_order').value) || 0;
+  const editId = document.getElementById('edit-id').value;
 
   if (!title || !url) return alert('Vui lòng nhập đủ Tiêu đề và URL!');
+  if (!isValidUrl(url)) return alert('URL không hợp lệ, phải bắt đầu http:// hoặc https://');
 
-  db.ref('links').push({ title, subtitle, url, sort_order })
-    .then(() => {
-      alert('Thêm nút mới thành công!');
-      document.getElementById('title').value = '';
-      document.getElementById('subtitle').value = '';
-      document.getElementById('url').value = '';
-    })
-    .catch((err) => alert('Lỗi: ' + err.message));
+  const payload = { title, subtitle, url, sort_order, clicks: 0 };
+  const ref = editId ? db.ref(`links/${editId}`).update(payload) : db.ref('links').push(payload);
+
+  ref.then(() => { alert(editId ? 'Đã cập nhật!' : 'Thêm nút mới thành công!'); resetForm(); })
+     .catch(err => alert('Lỗi: ' + err.message));
 };
+
+document.getElementById('cancelEditBtn').onclick = resetForm;
+function resetForm(){
+  document.getElementById('edit-id').value = '';
+  document.getElementById('title').value = '';
+  document.getElementById('subtitle').value = '';
+  document.getElementById('url').value = '';
+  document.getElementById('sort_order').value = '1';
+  document.getElementById('link-form-title').textContent = 'Thêm Nút Bấm Mới';
+  document.getElementById('addBtn').textContent = 'Thêm Nút Bấm';
+  document.getElementById('cancelEditBtn').style.display = 'none';
+}
 
 db.ref('links').on('value', (snapshot) => {
   const data = snapshot.val();
   const container = document.getElementById('admin-links-list');
   container.innerHTML = '';
+  if (!data) { container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>'; return; }
 
-  if (!data) {
-    container.innerHTML = '<small>Chưa có dữ liệu nút bấm nào</small>';
-    return;
-  }
-
-  Object.keys(data).forEach(id => {
-    const item = data[id];
+  Object.entries(data).sort((a,b) => (a[1].sort_order||0)-(b[1].sort_order||0)).forEach(([id, item]) => {
     const div = document.createElement('div');
     div.className = 'link-item';
     div.innerHTML = `
       <div>
         <strong>${item.title}</strong><br>
-        <small style="color:#aaa">${item.url}</small>
+        <small style="color:#aaa">${item.url} · ${item.clicks || 0} clicks</small>
       </div>
-      <button class="del-btn">Xóa</button>
     `;
-    div.querySelector('.del-btn').onclick = () => {
-      if (confirm('Bạn có chắc chắn muốn xóa nút này?')) {
-        db.ref(`links/${id}`).remove();
-      }
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-btn'; editBtn.textContent = 'Sửa';
+    editBtn.onclick = () => {
+      document.getElementById('edit-id').value = id;
+      document.getElementById('title').value = item.title || '';
+      document.getElementById('subtitle').value = item.subtitle || '';
+      document.getElementById('url').value = item.url || '';
+      document.getElementById('sort_order').value = item.sort_order || 1;
+      document.getElementById('link-form-title').textContent = 'Sửa Nút Bấm';
+      document.getElementById('addBtn').textContent = 'Lưu Thay Đổi';
+      document.getElementById('cancelEditBtn').style.display = 'block';
+      window.scrollTo({top:0, behavior:'smooth'});
     };
+    const del = document.createElement('button');
+    del.className = 'del-btn'; del.textContent = 'Xóa';
+    del.onclick = () => confirm('Bạn có chắc chắn muốn xóa nút này?') && db.ref(`links/${id}`).remove();
+    actions.appendChild(editBtn); actions.appendChild(del);
+    div.appendChild(actions);
     container.appendChild(div);
   });
 });
